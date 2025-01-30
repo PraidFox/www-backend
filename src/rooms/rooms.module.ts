@@ -8,6 +8,8 @@ import { RoomsController } from './rooms.controller';
 import { RoomsService } from './rooms.service';
 import { UsersRoomService } from '../users/usersRoom.service';
 import { UserEntity } from '../users/entities/user.entity';
+import { LocationsService } from '../locations/locations.service';
+import { LocationEntity } from '../locations/entities/location.entity';
 
 @Module({
   imports: [
@@ -17,9 +19,10 @@ import { UserEntity } from '../users/entities/user.entity';
       RoomsIsMemberUserEntity,
       CommentEntity,
       UserEntity,
+      LocationEntity,
     ]),
   ],
   controllers: [RoomsController],
-  providers: [RoomsService, UsersRoomService],
+  providers: [RoomsService, UsersRoomService, LocationsService],
 })
 export class RoomsModule {}

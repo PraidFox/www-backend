@@ -1,11 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { UserSessionEntity } from './entities/user-session.entity';
-import { UserEntity } from '../users/entities/user.entity';
-import { AuthDto } from './dto/auth.dto';
 import { UsersService } from '../users/users.service';
-import { MyError } from '../utils/constants/errors';
 
 @Injectable()
 export class SessionService {
@@ -16,24 +13,15 @@ export class SessionService {
   ) {}
 
   /** Проверка соответствия пароля, запись сессии (если больше 5 одну удалим)*/
-  async setSession(dto: AuthDto, sessionMetadata: string): Promise<UserSessionEntity> {
-    const user = await this.userService.findUserByEmailOrLoginWithPassword(dto.emailOrLogin);
-
-    const isPasswordValid = await this.userService.validatePassword(user.password, dto.password);
-    if (!isPasswordValid) {
-      throw new UnauthorizedException(MyError.WRONG_IDENTIFICATION);
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, tmpPassword, ...userWithoutPasswordAndOtherField } = user;
+  async setSession(userId: number, sessionMetadata: string): Promise<UserSessionEntity> {
     const session = await this.userSessionRepository.save({
-      user: userWithoutPasswordAndOtherField,
+      user: { id: userId },
       sessionMetadata,
     });
 
     const [sessions, count] = await this.userSessionRepository.findAndCount({
       where: {
-        user: { id: user.id } as UserEntity, //TODO посмотреть как можно избежать AS
+        user: { id: userId },
       },
       order: {
         updatedAt: 'DESC',

@@ -6,6 +6,10 @@ import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
 import { getSwaggerConfig } from './utils/constants/configs/swagger.config';
 
+//TODO проверить сессюрность приватной информации
+//TODO расставить валидаторы в DTOшках
+//TODO поместить в try catch работу с бд
+//TODO Тесты ^^
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get<ConfigService>(ConfigService);

@@ -31,20 +31,20 @@ export class RoomEntity extends BaseEntity {
   locations: LocationEntity[];
 
   @ApiProperty()
-  @Column({ nullable: true })
+  @Column({ type: 'timestamp with time zone', nullable: true })
   startDate: Date;
 
   @ApiProperty()
-  @Column({ nullable: true })
+  @Column({ type: 'timestamp with time zone', nullable: true })
   endDate: Date;
 
   @ApiProperty()
-  @Column({ nullable: true })
+  @Column({ type: 'timestamp with time zone', nullable: true })
   exactDate: Date;
 
   @ApiProperty()
   @ManyToOne(() => UserEntity, (user) => user.roomsIsAuthor)
-  author: UserMinInfo;
+  author: UserMinInfo; //TODO проверить какой же всё таки объект будет возвращаться UserMinInfo или UserEntity?
 
   @ApiProperty()
   @ManyToMany(() => UserEntity, (user) => user.rooms)

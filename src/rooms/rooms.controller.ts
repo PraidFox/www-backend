@@ -2,7 +2,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { RoomsService } from './rooms.service';
 import { UsersRoomService } from '../users/usersRoom.service';
-import { CreateRoomDto } from './dto/create-room.dto';
+import { CreateRoomDto, UpdateRoomDto } from './dto/create-room.dto';
 
 @ApiTags('Rooms')
 @Controller('rooms')
@@ -33,10 +33,14 @@ export class RoomsController {
   }
 
   @Post()
-  async create(@Body() body: CreateRoomDto) {}
+  async create(@Body() body: CreateRoomDto) {
+    return this.roomsService.createRoom(body);
+  }
 
   @Patch('update')
-  async update() {}
+  async update(@Body() body: UpdateRoomDto) {
+    return this.roomsService.updateRoom(body);
+  }
 
   @Delete('delete')
   async delete() {}

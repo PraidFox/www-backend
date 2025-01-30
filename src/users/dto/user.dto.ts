@@ -24,10 +24,10 @@ export class UpdateUserDto {
   @ApiPropertyOptional()
   @IsEmail()
   @IsOptional()
-  email: string;
+  email?: string;
 
   @ApiPropertyOptional()
   @IsString()
   @IsOptional()
-  login: string;
+  login?: string;
 }

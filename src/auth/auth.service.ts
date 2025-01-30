@@ -61,7 +61,14 @@ export class AuthService {
   }
 
   async login(dto: AuthDto, sessionMetadata: string) {
-    const sessionInfo = await this.sessionService.setSession(dto, sessionMetadata);
+    const user = await this.userService.findUserByEmailOrLoginWithPassword(dto.emailOrLogin);
+
+    const isPasswordValid = await this.userService.validatePassword(user.password, dto.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException(MyError.WRONG_IDENTIFICATION);
+    }
+
+    const sessionInfo = await this.sessionService.setSession(user.id, sessionMetadata);
     const { accessToken, refreshToken } = await this.tokenService.generateTokens({
       id: sessionInfo.user.id,
       login: sessionInfo.user.login,
