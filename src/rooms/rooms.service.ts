@@ -1,0 +1,27 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { RoomEntity } from './entities/room.entity';
+import { Repository } from 'typeorm';
+
+@Injectable()
+export class RoomsService {
+  constructor(
+    @InjectRepository(RoomEntity)
+    private roomsRepository: Repository<RoomEntity>,
+  ) {}
+
+  async getRoom(id: number) {
+    return await this.roomsRepository.findOne({ where: [{ id }] });
+  }
+
+  /** Проверка доступа пользователя к комнате (автор или участник)*/
+  async accessCheck(userId: number, roomId: number) {
+    const room: RoomEntity = await this.roomsRepository.findOne({
+      where: [{ id: roomId }],
+      relations: { author: true, members: true },
+    });
+
+    //Проверка есть ли пользовать как автор или в участниках
+    return room.members.some((member) => member.id === userId) || room.author.id === userId;
+  }
+}
