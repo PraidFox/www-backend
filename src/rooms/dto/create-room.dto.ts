@@ -1,5 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsDate, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
+import {
+  ArrayNotEmpty,
+  IsArray,
+  IsDate,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 import { CreateLocationDto } from '../../locations/dto/create-location.dto';
 import { Type } from 'class-transformer';
 
@@ -40,12 +49,13 @@ export class CreateRoomDto {
   exactDate: Date;
 
   @ApiProperty()
-  @IsString()
+  @IsNumber()
   authorId: number;
 
-  @ApiProperty()
-  @IsString()
-  @IsOptional()
+  @ApiProperty({ type: [Number], required: false })
+  @IsArray()
+  @IsNumber({}, { each: true }) // Проверяет, что каждый элемент массива — это число
+  @ArrayNotEmpty() // (опционально) Проверяет, что массив не пустой, если он присутствует
   members: number[];
 
   @ApiProperty()

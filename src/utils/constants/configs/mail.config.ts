@@ -20,9 +20,7 @@ export class MailerConfigClass implements MailerOptionsFactory {
         },
       },
       defaults: {
-        from: `"${this.configService.get(
-          'mail.name',
-        )}" <${this.configService.get('mail.user')}>`,
+        from: `"${this.configService.get('mail.name')}" <${this.configService.get('mail.user')}>`,
       },
       template: {
         dir: path.join('src', 'email', 'templates'),

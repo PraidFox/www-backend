@@ -4,6 +4,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { UserSessionEntity } from '../../auth/entities/user-session.entity';
 import { RoomEntity } from '../../rooms/entities/room.entity';
 import { CommentEntity } from '../../rooms/entities/comment.entity';
+import { UserRoomReactionEntity } from '../../rooms/entities/room-user-reaction.entity';
 
 @Entity('users')
 export class UserEntity extends BaseEntity {
@@ -40,6 +41,10 @@ export class UserEntity extends BaseEntity {
   @ApiProperty()
   @ManyToMany(() => RoomEntity, (room) => room.members)
   rooms: RoomEntity[];
+
+  @ApiProperty()
+  @OneToMany(() => UserRoomReactionEntity, (userReaction) => userReaction.user)
+  userReactions: UserRoomReactionEntity[];
 
   @ApiProperty()
   @OneToMany(() => CommentEntity, (comment) => comment.author)

@@ -7,12 +7,21 @@ import { LocationsService } from '../locations/locations.service';
 import { LocationEntity } from '../locations/entities/location.entity';
 import { UserMinInfo } from '../users/entities/user.entity';
 import { CreateLocationDto } from '../locations/dto/create-location.dto';
+import { CreateCommentDto, UpdateCommentDto } from './dto/create-comment.dto';
+import { CommentEntity } from './entities/comment.entity';
+import { CreateLocationReactionDto, UpdateLocationReactionDto } from './dto/create-location-reaction.dto';
+import { UserRoomReactionEntity } from './entities/room-user-reaction.entity';
 
+//Может стоит комментарии вынести в отдельный модуль? Или будут жить только в части комнат?
 @Injectable()
 export class RoomsService {
   constructor(
     @InjectRepository(RoomEntity)
     private roomsRepository: Repository<RoomEntity>,
+    @InjectRepository(CommentEntity)
+    private commentRepository: Repository<CommentEntity>,
+    @InjectRepository(UserRoomReactionEntity)
+    private userRoomReactionEntityRepository: Repository<UserRoomReactionEntity>,
     private readonly locationsService: LocationsService,
   ) {}
 
@@ -70,6 +79,42 @@ export class RoomsService {
     } catch (error) {
       throw new Error(`Ошибка при обновлении комнаты ${updateRoomDto.id}: ` + error.message);
     }
+  }
+
+  deleteRoom(id: number) {
+    return this.roomsRepository.delete(id);
+  }
+
+  async createComment(commentDto: CreateCommentDto) {
+    //Не чекаю существует ли такой объект по id? Настолько верю фронту? Хм...
+    await this.commentRepository.save({
+      text: commentDto.text,
+      author: { id: commentDto.authorId } as UserMinInfo,
+      room: { id: commentDto.room } as RoomEntity,
+    });
+  }
+
+  async updateComment(commentDto: UpdateCommentDto) {
+    await this.commentRepository.update(commentDto.id, commentDto);
+  }
+
+  async deleteComment(commentId: number) {
+    await this.commentRepository.delete(commentId);
+  }
+
+  async createReaction(locationReactionDto: CreateLocationReactionDto) {
+    const reaction = this.userRoomReactionEntityRepository.create({
+      room: { id: locationReactionDto.roomId } as RoomEntity,
+      user: { id: locationReactionDto.userId } as UserMinInfo,
+      location: { id: locationReactionDto.locationId } as LocationEntity,
+      reaction: locationReactionDto.reaction,
+    });
+
+    await this.userRoomReactionEntityRepository.save(reaction);
+  }
+
+  async updateReaction(locationReactionDto: UpdateLocationReactionDto) {
+    await this.userRoomReactionEntityRepository.update(locationReactionDto.id, locationReactionDto);
   }
 
   /** Проверит нужно ли создание новых локаций, если да, создаст и вернёт их id*/

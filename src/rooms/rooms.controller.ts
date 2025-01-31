@@ -3,6 +3,8 @@ import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/commo
 import { RoomsService } from './rooms.service';
 import { UsersRoomService } from '../users/usersRoom.service';
 import { CreateRoomDto, UpdateRoomDto } from './dto/create-room.dto';
+import { CreateCommentDto, UpdateCommentDto } from './dto/create-comment.dto';
+import { CreateLocationReactionDto, UpdateLocationReactionDto } from './dto/create-location-reaction.dto';
 
 @ApiTags('Rooms')
 @Controller('rooms')
@@ -12,19 +14,19 @@ export class RoomsController {
     private readonly usersRoomService: UsersRoomService,
   ) {}
 
-  @Get(':id')
-  async getRoom(@Param('id') id: number) {
-    return this.roomsService.getRoom(id);
+  @Get(':roomId')
+  async getRoom(@Param('roomId') roomId: number) {
+    return this.roomsService.getRoom(roomId);
   }
 
-  @Get('myRoomsIsAuthor/:id')
-  async getMyRoomsIsAuthor(@Param('id') id: number) {
-    return this.usersRoomService.getMyRoomsIsAuthor(id);
+  @Get('myRoomsIsAuthor/:idUser')
+  async getMyRoomsIsAuthor(@Param('idUser') idUser: number) {
+    return this.usersRoomService.getMyRoomsIsAuthor(idUser);
   }
 
-  @Get('myRoomsIsMember/:id')
-  async getMyRoomsIsMember(@Param('id') id: number) {
-    return this.usersRoomService.getMyRoomsIsMember(id);
+  @Get('myRoomsIsMember/:idUser')
+  async getMyRoomsIsMember(@Param('idUser') idUser: number) {
+    return this.usersRoomService.getMyRoomsIsMember(idUser);
   }
 
   @Get(':roomId/access/:userId')
@@ -37,26 +39,38 @@ export class RoomsController {
     return this.roomsService.createRoom(body);
   }
 
-  @Patch('update')
+  @Patch()
   async update(@Body() body: UpdateRoomDto) {
     return this.roomsService.updateRoom(body);
   }
 
-  @Delete('delete')
-  async delete() {}
+  @Delete(':roomId')
+  async delete(@Param('roomId') roomId: number) {
+    await this.roomsService.deleteRoom(roomId);
+  }
 
-  @Patch('restore')
-  async restore() {}
+  @Patch(':roomId/addComment')
+  async addComment(@Body() commentDto: CreateCommentDto) {
+    await this.roomsService.createComment(commentDto);
+  }
 
-  @Patch('addComment')
-  async addComment() {}
+  @Patch(':roomId/updateComment')
+  async updateComment(@Body() commentDto: UpdateCommentDto) {
+    await this.roomsService.updateComment(commentDto);
+  }
 
-  @Patch('updateComment')
-  async updateComment() {}
+  @Delete(':roomId/updateComment/:commentId')
+  async deleteComment(@Param('commentId') commentId: number) {
+    await this.roomsService.deleteComment(commentId);
+  }
 
-  @Delete('deleteComment')
-  async deleteComment() {}
+  @Post('reaction')
+  async createResponseLocation(@Body() body: CreateLocationReactionDto) {
+    await this.roomsService.createReaction(body);
+  }
 
-  @Patch('restoreComment')
-  async restoreComment() {}
+  @Patch('reaction')
+  async updateResponseLocations(@Body() body: UpdateLocationReactionDto) {
+    await this.roomsService.updateReaction(body);
+  }
 }

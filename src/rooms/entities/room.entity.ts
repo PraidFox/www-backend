@@ -11,6 +11,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { UserEntity, UserMinInfo } from '../../users/entities/user.entity';
 import { LocationEntity } from '../../locations/entities/location.entity';
 import { CommentEntity } from './comment.entity';
+import { UserRoomReactionEntity } from './room-user-reaction.entity';
 
 @Entity('rooms')
 export class RoomEntity extends BaseEntity {
@@ -28,7 +29,17 @@ export class RoomEntity extends BaseEntity {
 
   @ApiProperty()
   @ManyToMany(() => LocationEntity, (location) => location.rooms)
+  /**Дополнительные поля лежат в room-location (переделать?)**/
   locations: LocationEntity[];
+
+  @ApiProperty()
+  @ManyToMany(() => UserEntity, (user) => user.rooms)
+  /**Дополнительные поля лежат в room-user (переделать?)**/
+  members: UserMinInfo[];
+
+  @ApiProperty()
+  @OneToMany(() => UserRoomReactionEntity, (userReaction) => userReaction.room)
+  userReactions: UserRoomReactionEntity[];
 
   @ApiProperty()
   @Column({ type: 'timestamp with time zone', nullable: true })
@@ -45,10 +56,6 @@ export class RoomEntity extends BaseEntity {
   @ApiProperty()
   @ManyToOne(() => UserEntity, (user) => user.roomsIsAuthor)
   author: UserMinInfo; //TODO проверить какой же всё таки объект будет возвращаться UserMinInfo или UserEntity?
-
-  @ApiProperty()
-  @ManyToMany(() => UserEntity, (user) => user.rooms)
-  members: UserMinInfo[];
 
   @ApiProperty()
   @OneToMany(() => CommentEntity, (comment) => comment.room)
