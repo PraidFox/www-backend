@@ -63,7 +63,7 @@ export class RoomEntity extends BaseEntity {
 
   @ApiProperty()
   @Column()
-  roomStatus: 'ожидание' | 'процесс пошел' | 'выполняется' | 'закрыта';
+  roomStatus: 'создан' | 'процесс пошел' | 'выполняется' | 'закрыта';
 
   @ApiProperty()
   @Column({ nullable: true })

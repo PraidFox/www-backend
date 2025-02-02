@@ -70,8 +70,8 @@ export class AuthService {
 
     const sessionInfo = await this.sessionService.setSession(user.id, sessionMetadata);
     const { accessToken, refreshToken } = await this.tokenService.generateTokens({
-      id: sessionInfo.user.id,
-      login: sessionInfo.user.login,
+      id: user.id,
+      login: user.login,
       uuidSession: sessionInfo.id,
     });
 

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { FieldsService } from './fields.service';
 import { CreateFieldDto } from './dto/create-field.dto';
 import { UpdateFieldDto } from './dto/update-field.dto';
@@ -6,6 +6,11 @@ import { UpdateFieldDto } from './dto/update-field.dto';
 @Controller('fields')
 export class FieldsController {
   constructor(private readonly fieldsService: FieldsService) {}
+
+  @Get(':fieldsId')
+  getFieldsId(@Param('id') fieldsId: number) {
+    this;
+  }
 
   @Post()
   create(@Body() createFieldDto: CreateFieldDto) {

@@ -32,6 +32,7 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   async getMe(@Req() req: Request) {
     const { id } = req.user as DecodedAccessToken;
+
     return this.userService.getUserById(id);
   }
 
@@ -40,6 +41,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Получить текущего пользователя' })
   @UseGuards(JwtAuthGuard)
   async getMySessions(@Req() req: Request) {
+    console.log('req', req);
     const { id } = req.user as DecodedAccessToken;
     return this.userService.getSessionsUser(id);
   }

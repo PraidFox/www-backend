@@ -55,7 +55,6 @@ export class AuthController {
   @ApiResponse({ status: 200 })
   @UseGuards(JwtAuthGuard)
   async sendVerifyEmail(@Req() req: Request, @Body() body: UrlVerifyEmail): Promise<string> {
-    console.log('body', body);
     const { id } = req.user as DecodedAccessToken;
     const user = await this.userService.getUserById(id);
     return await this.authService.sendVerifyEmail(user, body.urlVerifyEmail);
@@ -199,7 +198,6 @@ export class AuthController {
 
         return { token, expire };
       } catch (error) {
-        console.log('error', error);
         if (error.message == 'invalid signature') {
           throw new UnauthorizedException('Рефреш токен некорректный');
         } else if (error.message == 'jwt expired') {

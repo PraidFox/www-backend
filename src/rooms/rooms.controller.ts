@@ -64,12 +64,12 @@ export class RoomsController {
     await this.roomsService.deleteComment(commentId);
   }
 
-  @Post('reaction')
+  @Post(':roomId/addReaction')
   async createResponseLocation(@Body() body: CreateLocationReactionDto) {
     await this.roomsService.createReaction(body);
   }
 
-  @Patch('reaction')
+  @Patch(':roomId/updateReaction')
   async updateResponseLocations(@Body() body: UpdateLocationReactionDto) {
     await this.roomsService.updateReaction(body);
   }

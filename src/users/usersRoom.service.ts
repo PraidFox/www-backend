@@ -11,10 +11,12 @@ export class UsersRoomService {
   ) {}
 
   async getMyRoomsIsAuthor(userId: number) {
-    return await this.usersRepository.findOne({
+    const userAndRoom = await this.usersRepository.findOne({
       where: [{ id: userId }],
       relations: { roomsIsAuthor: true },
     });
+
+    return userAndRoom.roomsIsAuthor;
   }
 
   async getMyRoomsIsMember(userId: number) {

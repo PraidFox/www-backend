@@ -1,9 +1,29 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateFieldDto } from './dto/create-field.dto';
 import { UpdateFieldDto } from './dto/update-field.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { FieldEntity } from './entities/field.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class FieldsService {
+  constructor(@InjectRepository(FieldEntity) private fieldsRepository: Repository<FieldEntity>) {}
+
+  async getField(fieldId: number) {
+    const field = await this.fieldsRepository.findOne({
+      where: {
+        id: fieldId,
+      },
+      relations: { options: true },
+    });
+
+    if (field) {
+      return field;
+    } else {
+      throw new NotFoundException('Такого поля нет');
+    }
+  }
+
   create(createFieldDto: CreateFieldDto) {
     return 'This action adds a new field';
   }

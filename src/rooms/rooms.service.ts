@@ -27,10 +27,10 @@ export class RoomsService {
 
   async getRoom(id: number) {
     const room = await this.roomsRepository.findOne({ where: { id } });
-    if (!room) {
-      throw new NotFoundException('Такой комнаты нет');
-    } else {
+    if (room) {
       return room;
+    } else {
+      throw new NotFoundException('Такой комнаты нет');
     }
   }
 
@@ -135,12 +135,19 @@ export class RoomsService {
       endDate: createRoomDto.endDate,
       exactDate: createRoomDto.exactDate,
       whenRoomClose: createRoomDto.whenRoomClose,
+      whenRoomDeleted: createRoomDto.whenRoomDeleted,
     });
 
     newRoom.locations = locationsId.map((id) => ({ id }) as LocationEntity);
 
     if (createRoomDto instanceof CreateRoomDto) {
       newRoom.author = { id: createRoomDto.authorId } as UserMinInfo;
+    }
+
+    if (createRoomDto instanceof CreateRoomDto) {
+      newRoom.roomStatus = 'создан';
+    } else {
+      newRoom.roomStatus = createRoomDto.roomStatus;
     }
 
     newRoom.members = createRoomDto.members.map((id) => ({ id }) as UserMinInfo);

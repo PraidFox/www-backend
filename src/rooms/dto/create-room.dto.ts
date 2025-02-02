@@ -62,10 +62,16 @@ export class CreateRoomDto {
   @IsDate({ message: 'Дата должна быть корректной' })
   @IsOptional()
   whenRoomClose: Date;
+
+  @ApiProperty()
+  @IsDate({ message: 'Дата должна быть корректной' })
+  @IsOptional()
+  whenRoomDeleted: Date;
 }
 
 export interface UpdateRoomDto extends Omit<CreateRoomDto, 'authorId'> {
   id: number;
+  roomStatus: 'создан' | 'процесс пошел' | 'выполняется' | 'закрыта';
 }
 
 //TODO завести декоратор, который будет проверять что бы startDate/endDate или exactDate были заполнены
