@@ -7,9 +7,9 @@ import { UpdateFieldDto } from './dto/update-field.dto';
 export class FieldsController {
   constructor(private readonly fieldsService: FieldsService) {}
 
-  @Get(':fieldsId')
-  getFieldsId(@Param('id') fieldsId: number) {
-    this;
+  @Get(':fieldId')
+  getFieldsId(@Param('id') fieldId: number) {
+    return this.fieldsService.getField(fieldId);
   }
 
   @Post()

@@ -14,7 +14,7 @@ export class LocationsController {
     return this.locationsService.create(createLocationDto);
   }
 
-  @Get()
+  @Get('getAll')
   findAll() {
     return this.locationsService.findAll();
   }

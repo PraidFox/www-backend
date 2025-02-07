@@ -12,10 +12,10 @@ export class LocationsService {
     private locationsRepository: Repository<LocationEntity>,
   ) {}
 
-  async manyCreate(createLocationDtos: CreateLocationDto[]) {
+  async manyCreate(createLocationsDto: CreateLocationDto[]) {
     const savedLocations: number[] = [];
 
-    for (const dto of createLocationDtos) {
+    for (const dto of createLocationsDto) {
       const location = this.locationsRepository.create(dto); // Создаем экземпляр сущности
       const savedLocation = await this.locationsRepository.save(location); // Сохраняем сущность
       savedLocations.push(savedLocation.id); // Добавляем id сохраненной сущности в массив
@@ -28,8 +28,12 @@ export class LocationsService {
     return await this.locationsRepository.save(createLocationDto);
   }
 
-  findAll() {
-    return `This action returns all locations`;
+  async findAll() {
+    return await this.locationsRepository.find({
+      order: {
+        name: 'ASC',
+      },
+    });
   }
 
   findOne(id: number) {
