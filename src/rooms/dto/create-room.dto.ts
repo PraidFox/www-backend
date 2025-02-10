@@ -24,29 +24,15 @@ export class CreateRoomDto {
 
   @ApiProperty()
   @IsArray()
+  @Type(() => LocationMoreInfoDto)
   @IsOptional()
-  existingLocationsId?: number[];
+  existingLocations?: LocationMoreInfoDto[];
 
   @ApiProperty()
   @ValidateNested({ each: true })
   @IsOptional()
   @Type(() => CreateLocationDto)
-  newLocations?: CreateLocationDto[];
-
-  @ApiProperty()
-  @IsDate()
-  @IsOptional({ message: 'Дата должна быть корректной' })
-  startDate: Date;
-
-  @ApiProperty()
-  @IsDate()
-  @IsOptional({ message: 'Дата должна быть корректной' })
-  endDate: Date;
-
-  @ApiProperty()
-  @IsDate()
-  @IsOptional({ message: 'Дата должна быть корректной' })
-  exactDate: Date;
+  newLocations?: NewLocationMoreInfoDto[];
 
   @ApiProperty()
   @IsNumber()
@@ -56,7 +42,7 @@ export class CreateRoomDto {
   @IsArray()
   @IsNumber({}, { each: true }) // Проверяет, что каждый элемент массива — это число
   @ArrayNotEmpty() // (опционально) Проверяет, что массив не пустой, если он присутствует
-  members: number[];
+  membersId: number[];
 
   @ApiProperty()
   @IsDate({ message: 'Дата должна быть корректной' })
@@ -72,6 +58,30 @@ export class CreateRoomDto {
 export interface UpdateRoomDto extends Omit<CreateRoomDto, 'authorId'> {
   id: number;
   roomStatus: 'создан' | 'процесс пошел' | 'выполняется' | 'закрыта';
+}
+
+export class NewLocationMoreInfoDto extends CreateLocationDto {
+  @ApiProperty()
+  @IsDate({ message: 'Дата должна быть корректной' })
+  exactDate: Date;
+
+  @IsString()
+  @IsOptional()
+  description: string;
+}
+
+export class LocationMoreInfoDto {
+  @ApiProperty()
+  @IsNumber()
+  existingLocationsId: number;
+
+  @ApiProperty()
+  @IsDate({ message: 'Дата должна быть корректной' })
+  exactDate: Date;
+
+  @IsString()
+  @IsOptional()
+  description: string;
 }
 
 //TODO завести декоратор, который будет проверять что бы startDate/endDate или exactDate были заполнены

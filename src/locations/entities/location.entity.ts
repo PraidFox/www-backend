@@ -1,7 +1,6 @@
-import { BaseEntity, Column, Entity, ManyToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsUrl } from 'class-validator';
-import { RoomEntity } from '../../rooms/entities/room.entity';
 
 @Entity('locations')
 export class LocationEntity extends BaseEntity {
@@ -22,7 +21,7 @@ export class LocationEntity extends BaseEntity {
   @Column()
   address: string;
 
-  @ApiProperty()
-  @ManyToMany(() => RoomEntity, (room) => room.locations)
-  rooms: RoomEntity[];
+  // @ApiProperty()
+  // @ManyToMany(() => RoomEntity, (room) => room.locations)
+  // rooms: RoomEntity[];
 }

@@ -9,9 +9,9 @@ import {
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { UserEntity, UserMinInfo } from '../../users/entities/user.entity';
-import { LocationEntity } from '../../locations/entities/location.entity';
 import { CommentEntity } from './comment.entity';
 import { UserRoomReactionEntity } from './room-user-reaction.entity';
+import { RoomLocationEntity } from './room-location.entity';
 
 @Entity('rooms')
 export class RoomEntity extends BaseEntity {
@@ -28,9 +28,9 @@ export class RoomEntity extends BaseEntity {
   description: string;
 
   @ApiProperty()
-  @ManyToMany(() => LocationEntity, (location) => location.rooms)
+  @OneToMany(() => RoomLocationEntity, (location) => location.room)
   /**Дополнительные поля лежат в room-location (переделать?)**/
-  locations: LocationEntity[];
+  roomLocations: RoomLocationEntity[];
 
   @ApiProperty()
   @ManyToMany(() => UserEntity, (user) => user.rooms)
@@ -40,18 +40,6 @@ export class RoomEntity extends BaseEntity {
   @ApiProperty()
   @OneToMany(() => UserRoomReactionEntity, (userReaction) => userReaction.room)
   userReactions: UserRoomReactionEntity[];
-
-  @ApiProperty()
-  @Column({ type: 'timestamp with time zone', nullable: true })
-  startDate: Date;
-
-  @ApiProperty()
-  @Column({ type: 'timestamp with time zone', nullable: true })
-  endDate: Date;
-
-  @ApiProperty()
-  @Column({ type: 'timestamp with time zone', nullable: true })
-  exactDate: Date;
 
   @ApiProperty()
   @ManyToOne(() => UserEntity, (user) => user.roomsIsAuthor)

@@ -10,6 +10,7 @@ import { UserEntity } from '../users/entities/user.entity';
 import { LocationsService } from '../locations/locations.service';
 import { LocationEntity } from '../locations/entities/location.entity';
 import { UserRoomReactionEntity } from './entities/room-user-reaction.entity';
+import { RoomLocationEntity } from './entities/room-location.entity';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { UserRoomReactionEntity } from './entities/room-user-reaction.entity';
       UserEntity,
       LocationEntity,
       CommentEntity,
+      RoomLocationEntity,
     ]),
   ],
   controllers: [RoomsController],
