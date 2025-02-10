@@ -38,6 +38,10 @@ export class RoomEntity extends BaseEntity {
   members: UserMinInfo[];
 
   @ApiProperty()
+  @Column({ type: 'timestamp with time zone', nullable: true })
+  exactDate: Date;
+
+  @ApiProperty()
   @OneToMany(() => UserRoomReactionEntity, (userReaction) => userReaction.room)
   userReactions: UserRoomReactionEntity[];
 

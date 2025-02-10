@@ -20,6 +20,7 @@ export class CreateRoomDto {
 
   @ApiProperty()
   @IsString()
+  @IsOptional()
   description: string;
 
   @ApiProperty()
@@ -43,6 +44,11 @@ export class CreateRoomDto {
   @IsNumber({}, { each: true }) // Проверяет, что каждый элемент массива — это число
   @ArrayNotEmpty() // (опционально) Проверяет, что массив не пустой, если он присутствует
   membersId: number[];
+
+  @ApiProperty()
+  @IsDate({ message: 'Дата должна быть корректной' })
+  @IsOptional()
+  exactDate: Date;
 
   @ApiProperty()
   @IsDate({ message: 'Дата должна быть корректной' })
