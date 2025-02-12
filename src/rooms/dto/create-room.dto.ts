@@ -12,10 +12,12 @@ import {
 import { CreateLocationDto } from '../../locations/dto/create-location.dto';
 import { Type } from 'class-transformer';
 
+// @ArrayNotEmpty({ message: 'newLocations не должен быть пустым' }) // Проверяет, что массив не пустой
+
 export class CreateRoomDto {
   @ApiProperty()
   @IsString()
-  @IsNotEmpty({ message: 'Ай дай имя плиз' })
+  @IsNotEmpty()
   title: string;
 
   @ApiProperty()
@@ -25,15 +27,17 @@ export class CreateRoomDto {
 
   @ApiProperty()
   @IsArray()
-  @Type(() => LocationMoreInfoDto)
+  @ValidateNested({ each: true })
+  @Type(() => LocationAndDetailsDto)
   @IsOptional()
-  existingLocations?: LocationMoreInfoDto[];
+  existingLocationsAndDetails: LocationAndDetailsDto[];
 
   @ApiProperty()
-  @ValidateNested({ each: true })
   @IsOptional()
-  @Type(() => CreateLocationDto)
-  newLocations?: NewLocationMoreInfoDto[];
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => NewLocationAndDetailsDto)
+  newLocationsAndDetails: NewLocationAndDetailsDto[];
 
   @ApiProperty()
   @IsNumber()
@@ -41,8 +45,8 @@ export class CreateRoomDto {
 
   @ApiProperty({ type: [Number], required: false })
   @IsArray()
-  @IsNumber({}, { each: true }) // Проверяет, что каждый элемент массива — это число
-  @ArrayNotEmpty() // (опционально) Проверяет, что массив не пустой, если он присутствует
+  @IsNumber({}, { each: true })
+  @ArrayNotEmpty()
   membersId: number[];
 
   @ApiProperty()
@@ -66,9 +70,10 @@ export interface UpdateRoomDto extends Omit<CreateRoomDto, 'authorId'> {
   roomStatus: 'создан' | 'процесс пошел' | 'выполняется' | 'закрыта';
 }
 
-export class NewLocationMoreInfoDto extends CreateLocationDto {
+class DetailsForWhere {
   @ApiProperty()
   @IsDate({ message: 'Дата должна быть корректной' })
+  @IsOptional()
   exactDate: Date;
 
   @IsString()
@@ -76,18 +81,17 @@ export class NewLocationMoreInfoDto extends CreateLocationDto {
   description: string;
 }
 
-export class LocationMoreInfoDto {
+export class NewLocationAndDetailsDto extends DetailsForWhere {
+  @ApiProperty()
+  @ValidateNested()
+  @Type(() => CreateLocationDto)
+  newLocation: CreateLocationDto;
+}
+
+export class LocationAndDetailsDto extends DetailsForWhere {
   @ApiProperty()
   @IsNumber()
   existingLocationsId: number;
-
-  @ApiProperty()
-  @IsDate({ message: 'Дата должна быть корректной' })
-  exactDate: Date;
-
-  @IsString()
-  @IsOptional()
-  description: string;
 }
 
 //TODO завести декоратор, который будет проверять что бы startDate/endDate или exactDate были заполнены

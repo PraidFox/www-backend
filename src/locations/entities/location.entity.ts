@@ -15,10 +15,12 @@ export class LocationEntity extends BaseEntity {
   @ApiProperty()
   @IsUrl()
   @Column()
+  @Column({ nullable: true })
   url: string;
 
   @ApiProperty()
   @Column()
+  @Column({ nullable: true })
   address: string;
 
   // @ApiProperty()

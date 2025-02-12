@@ -1,22 +1,25 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { RoomEntity } from './room.entity';
 import { UserEntity } from '../../users/entities/user.entity';
+import { MemberStatus } from '../../utils/constants/constants';
 
 @Entity('room-user')
-export class RoomsIsMemberUserEntity {
+export class RoomMemberEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => RoomEntity, (room) => room.members)
-  @JoinColumn({ name: 'room', referencedColumnName: 'id' })
-  room: RoomEntity;
-
   @ManyToOne(() => UserEntity, (user) => user.rooms)
-  @JoinColumn({ name: 'member', referencedColumnName: 'id' })
   member: UserEntity;
 
-  @Column()
-  status: string; //не просмотрено / просмотрено / поучаствовал в опросе
+  @ManyToOne(() => RoomEntity, (room) => room.members)
+  room: RoomEntity;
+
+  @Column({
+    type: 'enum',
+    enum: MemberStatus,
+    default: MemberStatus.NOT_VIEWED,
+  })
+  status: MemberStatus;
 
   //Todo добавить толи ролевую модель, то ли что участник (не автор) может делать в комнате
 }

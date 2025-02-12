@@ -1,10 +1,11 @@
-import { Column, Entity, ManyToMany, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { BaseEntity } from '../../utils/base.entity';
 import { ApiProperty } from '@nestjs/swagger';
 import { UserSessionEntity } from '../../auth/entities/user-session.entity';
 import { RoomEntity } from '../../rooms/entities/room.entity';
 import { CommentEntity } from '../../rooms/entities/comment.entity';
 import { UserRoomReactionEntity } from '../../rooms/entities/room-user-reaction.entity';
+import { RoomMemberEntity } from '../../rooms/entities/room-user';
 
 @Entity('users')
 export class UserEntity extends BaseEntity {
@@ -39,8 +40,8 @@ export class UserEntity extends BaseEntity {
   roomsIsAuthor: RoomEntity[];
 
   @ApiProperty()
-  @ManyToMany(() => RoomEntity, (room) => room.members)
-  rooms: RoomEntity[];
+  @OneToMany(() => RoomMemberEntity, (roomUser) => roomUser.member)
+  rooms: RoomMemberEntity[];
 
   @ApiProperty()
   @OneToMany(() => UserRoomReactionEntity, (userReaction) => userReaction.user)

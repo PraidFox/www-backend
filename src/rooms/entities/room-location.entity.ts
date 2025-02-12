@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { RoomEntity } from './room.entity';
 import { LocationEntity } from '../../locations/entities/location.entity';
 import { ApiProperty } from '@nestjs/swagger';
@@ -8,12 +8,10 @@ export class RoomLocationEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => RoomEntity, (room) => room.roomLocations)
-  @JoinColumn({ name: 'room', referencedColumnName: 'id' })
+  @ManyToOne(() => RoomEntity, (room) => room.locations)
   room: RoomEntity;
 
-  @ManyToOne(() => LocationEntity)
-  @JoinColumn({ name: 'location', referencedColumnName: 'id' })
+  @ManyToOne(() => LocationEntity, { cascade: true })
   location: LocationEntity;
 
   @ApiProperty()
@@ -21,5 +19,6 @@ export class RoomLocationEntity {
   exactDate: Date;
 
   @Column()
+  @Column({ nullable: true })
   description: string;
 }

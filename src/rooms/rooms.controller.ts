@@ -36,7 +36,6 @@ export class RoomsController {
 
   @Post()
   async create(@Body() body: CreateRoomDto) {
-    console.log('body', body);
     return this.roomsService.createRoom(body);
   }
 

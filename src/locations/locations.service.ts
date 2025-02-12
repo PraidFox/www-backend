@@ -13,6 +13,7 @@ export class LocationsService {
   ) {}
 
   async create(createLocationDto: CreateLocationDto) {
+    //Перед созданием локации проверить нет ли уже такой?
     return await this.locationsRepository.save(createLocationDto);
   }
 

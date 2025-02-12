@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RoomsIsMemberUserEntity } from './entities/room-user';
+import { RoomMemberEntity } from './entities/room-user';
 import { RoomEntity } from './entities/room.entity';
 import { CommentEntity } from './entities/comment.entity';
 import { RoomsController } from './rooms.controller';
@@ -16,7 +16,7 @@ import { RoomLocationEntity } from './entities/room-location.entity';
   imports: [
     TypeOrmModule.forFeature([
       RoomEntity,
-      RoomsIsMemberUserEntity,
+      RoomMemberEntity,
       UserRoomReactionEntity,
       CommentEntity,
       UserEntity,
