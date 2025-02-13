@@ -1,7 +1,8 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { RoomEntity } from './room.entity';
 import { UserEntity } from '../../users/entities/user.entity';
 import { MemberStatus } from '../../utils/constants/constants';
+import { IsEnum } from 'class-validator';
 
 @Entity('room-user')
 export class RoomMemberEntity {
@@ -14,11 +15,7 @@ export class RoomMemberEntity {
   @ManyToOne(() => RoomEntity, (room) => room.members)
   room: RoomEntity;
 
-  @Column({
-    type: 'enum',
-    enum: MemberStatus,
-    default: MemberStatus.NOT_VIEWED,
-  })
+  @IsEnum(MemberStatus)
   status: MemberStatus;
 
   //Todo добавить толи ролевую модель, то ли что участник (не автор) может делать в комнате

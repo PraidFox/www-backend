@@ -5,6 +5,7 @@ import { CommentEntity } from './comment.entity';
 import { UserRoomReactionEntity } from './room-user-reaction.entity';
 import { RoomLocationEntity } from './room-location.entity';
 import { RoomMemberEntity } from './room-user';
+import { DateType, RoomStatus } from '../../utils/constants/constants';
 
 @Entity('rooms')
 export class RoomEntity extends BaseEntity {
@@ -29,6 +30,10 @@ export class RoomEntity extends BaseEntity {
   members: RoomMemberEntity[];
 
   @ApiProperty()
+  @Column({ type: 'enum', enum: DateType })
+  dateType: DateType;
+
+  @ApiProperty()
   @Column({ type: 'timestamp with time zone', nullable: true })
   exactDate: Date;
 
@@ -45,8 +50,8 @@ export class RoomEntity extends BaseEntity {
   comments: CommentEntity[];
 
   @ApiProperty()
-  @Column()
-  roomStatus: 'создан' | 'процесс пошел' | 'выполняется' | 'закрыта';
+  @Column({ type: 'enum', enum: RoomStatus })
+  roomStatus: RoomStatus;
 
   @ApiProperty()
   @Column({ nullable: true })

@@ -12,6 +12,7 @@ import { CreateLocationReactionDto, UpdateLocationReactionDto } from './dto/crea
 import { UserRoomReactionEntity } from './entities/room-user-reaction.entity';
 import { RoomLocationEntity } from './entities/room-location.entity';
 import { RoomMemberEntity } from './entities/room-user';
+import { RoomStatus } from '../utils/constants/constants';
 
 //Может стоит комментарии вынести в отдельный модуль? Или будут жить только в части комнат?
 @Injectable()
@@ -29,8 +30,36 @@ export class RoomsService {
   ) {}
 
   async getRoom(id: number) {
-    const room = await this.roomsRepository.findOne({ where: { id } });
+    //TODO узнать как ограничить возвращаемые данные в author и member. UPD походу только ручной труд
+    const room = await this.roomsRepository.findOne({
+      where: { id },
+      relations: { locations: { location: true }, members: { member: true }, author: true },
+    });
     if (room) {
+      //
+      return room;
+    } else {
+      throw new NotFoundException('Такой комнаты нет');
+    }
+  }
+
+  async getRoomFull(id: number) {
+    const room = await this.roomsRepository.findOne({
+      where: { id },
+      relations: {
+        locations: true,
+        members: { member: true },
+        author: true,
+        userReactions: true,
+        comments: true,
+      },
+    });
+    if (room) {
+      //const membersWithStatus = room.members.map((roomUser) => ({
+      //   user: roomUser.member, // здесь берем данные о пользователе
+      //   status: roomUser.status, // и статус
+      // }));
+
       return room;
     } else {
       throw new NotFoundException('Такой комнаты нет');
@@ -52,6 +81,7 @@ export class RoomsService {
   async createRoom(createRoomDto: CreateRoomDto) {
     let newRoom = await this.buildRoomEntity(createRoomDto);
     try {
+      console.log('newRoom', newRoom);
       newRoom = await this.roomsRepository.save(newRoom);
     } catch (error) {
       throw new Error('Ошибка при создания новой комнаты: ' + error.message);
@@ -124,6 +154,8 @@ export class RoomsService {
   private async buildRoomEntity(createRoomDto: CreateRoomDto | UpdateRoomDto) {
     const newRoom = this.roomsRepository.create({
       title: createRoomDto.title,
+      exactDate: createRoomDto.exactDate,
+      dateType: createRoomDto.dateType,
       description: createRoomDto.description,
       whenRoomClose: createRoomDto.whenRoomClose,
       whenRoomDeleted: createRoomDto.whenRoomDeleted,
@@ -172,7 +204,7 @@ export class RoomsService {
     }
 
     if (createRoomDto instanceof CreateRoomDto) {
-      newRoom.roomStatus = 'создан';
+      newRoom.roomStatus = RoomStatus.CREATED;
     } else {
       newRoom.roomStatus = createRoomDto.roomStatus;
     }

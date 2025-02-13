@@ -1,8 +1,9 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, OmitType } from '@nestjs/swagger';
 import {
   ArrayNotEmpty,
   IsArray,
   IsDate,
+  IsEnum,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -10,7 +11,8 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { CreateLocationDto } from '../../locations/dto/create-location.dto';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
+import { DateType, RoomStatus } from '../../utils/constants/constants';
 
 // @ArrayNotEmpty({ message: 'newLocations не должен быть пустым' }) // Проверяет, что массив не пустой
 
@@ -51,8 +53,12 @@ export class CreateRoomDto {
 
   @ApiProperty()
   @IsDate({ message: 'Дата должна быть корректной' })
+  @Transform(({ value }) => new Date(value), { toClassOnly: true })
   @IsOptional()
   exactDate: Date;
+
+  @IsEnum(DateType)
+  dateType: DateType;
 
   @ApiProperty()
   @IsDate({ message: 'Дата должна быть корректной' })
@@ -65,14 +71,16 @@ export class CreateRoomDto {
   whenRoomDeleted: Date;
 }
 
-export interface UpdateRoomDto extends Omit<CreateRoomDto, 'authorId'> {
+export class UpdateRoomDto extends OmitType(CreateRoomDto, ['authorId']) {
+  //TODO проверить работает ли унаследование
   id: number;
-  roomStatus: 'создан' | 'процесс пошел' | 'выполняется' | 'закрыта';
+  roomStatus: RoomStatus;
 }
 
 class DetailsForWhere {
   @ApiProperty()
   @IsDate({ message: 'Дата должна быть корректной' })
+  @Transform(({ value }) => new Date(value), { toClassOnly: true })
   @IsOptional()
   exactDate: Date;
 
