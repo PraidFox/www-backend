@@ -14,7 +14,7 @@ export class RoomMemberEntity {
   @ManyToOne(() => RoomEntity, (room) => room.members)
   room: RoomEntity;
 
-  @Column({ type: 'enum', enum: MemberStatus })
+  @Column({ type: 'enum', enum: MemberStatus, default: MemberStatus.NOT_VIEWED })
   status: MemberStatus;
 
   //Todo добавить толи ролевую модель, то ли что участник (не автор) может делать в комнате

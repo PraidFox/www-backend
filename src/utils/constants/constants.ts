@@ -21,3 +21,10 @@ export enum RoomStatus {
   RUNNING = 'running',
   CLOSED = 'closed',
 }
+
+export enum RoomLocationUserReaction {
+  SUCCESS = 'success', //участвует
+  FAIL = 'fail', //не участвует
+  THIS = 'this', //думает
+  NOT_REACTION = 'not_reaction', //еще не проставил
+}

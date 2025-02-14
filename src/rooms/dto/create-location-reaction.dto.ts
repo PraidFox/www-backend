@@ -1,4 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEnum } from 'class-validator';
+import { RoomLocationUserReaction } from '../../utils/constants/constants';
 
 export class CreateLocationReactionDto {
   @ApiProperty()
@@ -11,7 +13,8 @@ export class CreateLocationReactionDto {
   userId: number;
 
   @ApiProperty()
-  reaction: string;
+  @IsEnum(RoomLocationUserReaction)
+  reaction: RoomLocationUserReaction;
 }
 
 export class UpdateLocationReactionDto {

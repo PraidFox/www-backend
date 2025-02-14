@@ -4,7 +4,6 @@ import { RoomsService } from './rooms.service';
 import { UsersRoomService } from '../users/usersRoom.service';
 import { CreateRoomDto, UpdateRoomDto } from './dto/create-room.dto';
 import { CreateCommentDto, UpdateCommentDto } from './dto/create-comment.dto';
-import { CreateLocationReactionDto, UpdateLocationReactionDto } from './dto/create-location-reaction.dto';
 
 @ApiTags('Rooms')
 @Controller('rooms')
@@ -64,13 +63,8 @@ export class RoomsController {
     await this.roomsService.deleteComment(commentId);
   }
 
-  @Post(':roomId/addReaction')
-  async createResponseLocation(@Body() body: CreateLocationReactionDto) {
-    await this.roomsService.createReaction(body);
-  }
-
-  @Patch(':roomId/updateReaction')
-  async updateResponseLocations(@Body() body: UpdateLocationReactionDto) {
-    await this.roomsService.updateReaction(body);
-  }
+  // @Patch(':roomId/updateReaction')
+  // async updateResponseLocations(@Body() body: UpdateLocationReactionDto) {
+  //   await this.roomsService.updateReaction(body);
+  // }
 }

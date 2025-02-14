@@ -1,20 +1,19 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RoomEntity } from './entities/room.entity';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { CreateRoomDto, UpdateRoomDto } from './dto/create-room.dto';
-import { LocationsService } from '../locations/locations.service';
-import { LocationEntity } from '../locations/entities/location.entity';
 import { UserMinInfo } from '../users/entities/user.entity';
 import { CreateCommentDto, UpdateCommentDto } from './dto/create-comment.dto';
 import { CommentEntity } from './entities/comment.entity';
-import { CreateLocationReactionDto, UpdateLocationReactionDto } from './dto/create-location-reaction.dto';
+import { CreateLocationReactionDto } from './dto/create-location-reaction.dto';
 import { UserRoomReactionEntity } from './entities/room-user-reaction.entity';
 import { RoomLocationEntity } from './entities/room-location.entity';
 import { RoomMemberEntity } from './entities/room-user';
-import { MemberStatus, RoomStatus } from '../utils/constants/constants';
+import { RoomLocationUserReaction, RoomStatus } from '../utils/constants/constants';
+import { LocationEntity } from '../locations/entities/location.entity';
 
-//Может стоит комментарии вынести в отдельный модуль? Или будут жить только в части комнат?
+//Может стоит комментарии вынести в отдельный модуль? Или будут жить только в части комнат? Или вообще вынести другие части?
 @Injectable()
 export class RoomsService {
   constructor(
@@ -25,8 +24,11 @@ export class RoomsService {
     @InjectRepository(UserRoomReactionEntity)
     private userRoomReactionEntityRepository: Repository<UserRoomReactionEntity>,
     @InjectRepository(RoomLocationEntity)
-    private userRoomLocationRepository: Repository<RoomLocationEntity>,
-    private readonly locationsService: LocationsService,
+    private roomLocationRepository: Repository<RoomLocationEntity>,
+    @InjectRepository(RoomMemberEntity)
+    private userRoomRepository: Repository<RoomMemberEntity>,
+
+    //private readonly locationsService: LocationsService,
   ) {}
 
   async getRoom(id: number) {
@@ -86,18 +88,35 @@ export class RoomsService {
     } catch (error) {
       throw new Error('Ошибка при создания новой комнаты: ' + error.message);
     }
+
+    newRoom.locations.forEach((location) => {
+      newRoom.members.forEach((member) => {
+        this.createReaction({
+          roomId: newRoom.id,
+          userId: member.id,
+          locationId: location.id,
+          reaction: RoomLocationUserReaction.NOT_REACTION,
+        });
+      });
+    });
+
     return newRoom;
   }
 
   async updateRoom(updateRoomDto: UpdateRoomDto) {
     await this.getRoom(updateRoomDto.id);
 
-    //TODO а не перезатрёт ли данные с уже заведёнными локацими?
-    const room = await this.buildRoomEntity(updateRoomDto);
+    let room = await this.buildRoomEntity(updateRoomDto);
     room.id = updateRoomDto.id;
 
     try {
-      return await this.roomsRepository.save(room);
+      room = await this.roomsRepository.save(room);
+      room.locations.forEach((location) => {
+        //TODO поиск локации пользователя если есть ничего не делаем, если нет создаём и видимо очищаем то что стало нул? хотя оно же само не станет нулом
+      });
+
+      this.clearNullRoomLinks();
+      return room;
     } catch (error) {
       throw new Error(`Ошибка при обновлении комнаты ${updateRoomDto.id}: ` + error.message);
     }
@@ -129,14 +148,39 @@ export class RoomsService {
       room: { id: locationReactionDto.roomId } as RoomEntity,
       user: { id: locationReactionDto.userId } as UserMinInfo,
       location: { id: locationReactionDto.locationId } as LocationEntity,
-      reaction: locationReactionDto.reaction,
+      reaction: RoomLocationUserReaction.NOT_REACTION,
     });
 
     await this.userRoomReactionEntityRepository.save(reaction);
   }
 
-  async updateReaction(locationReactionDto: UpdateLocationReactionDto) {
-    await this.userRoomReactionEntityRepository.update(locationReactionDto.id, locationReactionDto);
+  // async updateReaction(locationReactionDto: UpdateLocationReactionDto) {
+  //   await this.userRoomReactionEntityRepository.update(locationReactionDto.id, locationReactionDto);
+  // }
+
+  async clearNullRoomLinks(): Promise<void> {
+    await this.roomLocationRepository.manager.transaction(async (entityManager: EntityManager) => {
+      await entityManager
+        .createQueryBuilder()
+        .delete()
+        .from(RoomLocationEntity)
+        .where('roomId IS NULL')
+        .execute();
+
+      await entityManager
+        .createQueryBuilder()
+        .delete()
+        .from(RoomMemberEntity)
+        .where('roomId IS NULL')
+        .execute();
+
+      // await entityManager
+      //   .createQueryBuilder()
+      //   .delete()
+      //   .from(UserRoomReactionEntity)
+      //   .where('roomId IS NULL')
+      //   .execute();
+    });
   }
 
   private async buildRoomEntity(roomDto: CreateRoomDto | UpdateRoomDto) {
@@ -154,7 +198,6 @@ export class RoomsService {
         (memberId) =>
           ({
             member: { id: memberId },
-            status: MemberStatus.NOT_VIEWED,
           }) as RoomMemberEntity,
       );
     }
