@@ -1,4 +1,4 @@
-import { ApiProperty, OmitType } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayNotEmpty,
   IsArray,
@@ -12,7 +12,7 @@ import {
 } from 'class-validator';
 import { CreateLocationDto } from '../../locations/dto/create-location.dto';
 import { Transform, Type } from 'class-transformer';
-import { DateType, RoomStatus } from '../../utils/constants/constants';
+import { DateType } from '../../utils/constants/constants';
 
 // @ArrayNotEmpty({ message: 'newLocations не должен быть пустым' }) // Проверяет, что массив не пустой
 
@@ -71,10 +71,35 @@ export class CreateRoomDto {
   whenRoomDeleted: Date;
 }
 
-export class UpdateRoomDto extends OmitType(CreateRoomDto, ['authorId']) {
-  //TODO проверить работает ли унаследование
+export class UpdateRoomDto extends CreateRoomDto {
+  //TODO что делать с автором при создании он нужен, при обновлении нет
+  @ApiProperty()
+  @IsNumber()
   id: number;
-  roomStatus: RoomStatus;
+
+  @ApiProperty()
+  @IsNumber()
+  @IsOptional()
+  authorId: number;
+
+  @IsOptional()
+  membersId: number[];
+
+  @ApiProperty()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MembersIdAndLinkIdDto)
+  members: MembersIdAndLinkIdDto[];
+}
+
+export class MembersIdAndLinkIdDto {
+  @ApiProperty()
+  @IsNumber()
+  linkId: number;
+
+  @ApiProperty()
+  @IsNumber()
+  memberId: number;
 }
 
 class DetailsForWhere {
@@ -84,6 +109,7 @@ class DetailsForWhere {
   @IsOptional()
   exactDate: Date;
 
+  @ApiProperty()
   @IsString()
   @IsOptional()
   description: string;
@@ -97,6 +123,10 @@ export class NewLocationAndDetailsDto extends DetailsForWhere {
 }
 
 export class LocationAndDetailsDto extends DetailsForWhere {
+  @ApiProperty()
+  @IsNumber()
+  linkId: number;
+
   @ApiProperty()
   @IsNumber()
   existingLocationsId: number;

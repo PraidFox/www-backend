@@ -12,7 +12,7 @@ import { CreateLocationReactionDto, UpdateLocationReactionDto } from './dto/crea
 import { UserRoomReactionEntity } from './entities/room-user-reaction.entity';
 import { RoomLocationEntity } from './entities/room-location.entity';
 import { RoomMemberEntity } from './entities/room-user';
-import { RoomStatus } from '../utils/constants/constants';
+import { MemberStatus, RoomStatus } from '../utils/constants/constants';
 
 //Может стоит комментарии вынести в отдельный модуль? Или будут жить только в части комнат?
 @Injectable()
@@ -70,11 +70,11 @@ export class RoomsService {
   async accessCheck(userId: number, roomId: number) {
     const room: RoomEntity = await this.roomsRepository.findOne({
       where: { id: roomId },
-      relations: { author: true, members: true },
+      relations: { author: true, members: { member: true } },
     });
 
     //Проверка есть ли пользовать как автор или в участниках
-    return room.members.some((member) => member.id === userId) || room.author.id === userId;
+    return room.members.some((member) => member.member.id === userId) || room.author.id === userId;
   }
 
   /**Перед созданием комнаты, если есть новые локации создаст их*/
@@ -92,24 +92,12 @@ export class RoomsService {
   async updateRoom(updateRoomDto: UpdateRoomDto) {
     await this.getRoom(updateRoomDto.id);
 
+    //TODO а не перезатрёт ли данные с уже заведёнными локацими?
     const room = await this.buildRoomEntity(updateRoomDto);
-
-    // if (updateRoomDto.newLocations) {
-    //   //TODO а не перезатрёт ли данные с уже заведёнными локацими?
-    //   for (const location of updateRoomDto.newLocations) {
-    //     const newLocation = await this.getLocationId(location);
-    //
-    //     await this.userRoomLocationRepository.save({
-    //       room: { id: updateRoomDto.id } as RoomEntity,
-    //       location: { id: newLocation.id } as LocationEntity,
-    //       description: location.description,
-    //       exactDate: location.exactDate,
-    //     });
-    //   }
-    // }
+    room.id = updateRoomDto.id;
 
     try {
-      return await this.roomsRepository.update(updateRoomDto.id, room);
+      return await this.roomsRepository.save(room);
     } catch (error) {
       throw new Error(`Ошибка при обновлении комнаты ${updateRoomDto.id}: ` + error.message);
     }
@@ -151,33 +139,48 @@ export class RoomsService {
     await this.userRoomReactionEntityRepository.update(locationReactionDto.id, locationReactionDto);
   }
 
-  private async buildRoomEntity(createRoomDto: CreateRoomDto | UpdateRoomDto) {
+  private async buildRoomEntity(roomDto: CreateRoomDto | UpdateRoomDto) {
     const newRoom = this.roomsRepository.create({
-      title: createRoomDto.title,
-      exactDate: createRoomDto.exactDate,
-      dateType: createRoomDto.dateType,
-      description: createRoomDto.description,
-      whenRoomClose: createRoomDto.whenRoomClose,
-      whenRoomDeleted: createRoomDto.whenRoomDeleted,
-      members: createRoomDto.membersId.map(
+      title: roomDto.title,
+      exactDate: roomDto.exactDate,
+      dateType: roomDto.dateType,
+      description: roomDto.description,
+      whenRoomClose: roomDto.whenRoomClose,
+      whenRoomDeleted: roomDto.whenRoomDeleted,
+    });
+
+    if (roomDto instanceof CreateRoomDto) {
+      newRoom.members = roomDto.membersId.map(
         (memberId) =>
           ({
             member: { id: memberId },
+            status: MemberStatus.NOT_VIEWED,
           }) as RoomMemberEntity,
-      ),
-    });
+      );
+    }
 
-    if (createRoomDto instanceof CreateRoomDto) {
-      newRoom.author = { id: createRoomDto.authorId } as UserMinInfo;
+    if (roomDto instanceof UpdateRoomDto) {
+      newRoom.members = roomDto.members.map(
+        (member) =>
+          ({
+            id: member.linkId,
+            member: { id: member.memberId },
+          }) as RoomMemberEntity,
+      );
+    }
+
+    if (roomDto instanceof CreateRoomDto) {
+      newRoom.author = { id: roomDto.authorId } as UserMinInfo;
     }
 
     const locations: RoomLocationEntity[] = [];
 
-    if (createRoomDto.existingLocationsAndDetails) {
+    if (roomDto.existingLocationsAndDetails) {
       locations.push(
-        ...createRoomDto.existingLocationsAndDetails.map(
+        ...roomDto.existingLocationsAndDetails.map(
           (location) =>
             ({
+              id: location.linkId,
               location: { id: location.existingLocationsId },
               description: location.description,
               exactDate: location.exactDate,
@@ -186,9 +189,9 @@ export class RoomsService {
       );
     }
 
-    if (createRoomDto.newLocationsAndDetails) {
+    if (roomDto.newLocationsAndDetails) {
       locations.push(
-        ...createRoomDto.newLocationsAndDetails.map(
+        ...roomDto.newLocationsAndDetails.map(
           (location) =>
             ({
               location: location.newLocation,
@@ -203,10 +206,8 @@ export class RoomsService {
       newRoom.locations = locations;
     }
 
-    if (createRoomDto instanceof CreateRoomDto) {
+    if (roomDto instanceof CreateRoomDto) {
       newRoom.roomStatus = RoomStatus.CREATED;
-    } else {
-      newRoom.roomStatus = createRoomDto.roomStatus;
     }
 
     return newRoom;

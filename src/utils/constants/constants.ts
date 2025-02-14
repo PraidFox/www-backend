@@ -16,8 +16,8 @@ export enum DateType {
 }
 
 export enum RoomStatus {
-  CREATED = 'created', // Общая дата для всех локаций
-  PROGRESS = 'progress', // Отдельная дата для каждой локации
+  CREATED = 'created',
+  PROGRESS = 'progress',
   RUNNING = 'running',
   CLOSED = 'closed',
 }
