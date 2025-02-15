@@ -13,9 +13,9 @@ export class CreateCommentDto {
 
   @ApiProperty()
   @IsNumber()
-  room: number;
+  roomId: number;
 }
 
-export interface UpdateCommentDto extends Omit<CreateCommentDto, 'authorId' | 'room'> {
+export interface UpdateCommentDto extends Omit<CreateCommentDto, 'authorId' | 'roomId'> {
   id: number;
 }

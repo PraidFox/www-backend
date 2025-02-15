@@ -24,6 +24,6 @@ export class UserRoomReactionEntity {
   location: LocationEntity;
 
   @ApiProperty()
-  @Column({ type: 'enum', enum: RoomLocationUserReaction })
+  @Column({ type: 'enum', enum: RoomLocationUserReaction, default: RoomLocationUserReaction.NOT_REACTION })
   reaction: RoomLocationUserReaction; // или любые другие значения, отражающие реакцию
 }

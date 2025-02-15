@@ -38,7 +38,7 @@ export class RoomEntity extends BaseEntity {
   exactDate: Date;
 
   @ApiProperty()
-  @OneToMany(() => UserRoomReactionEntity, (userReaction) => userReaction.room)
+  @OneToMany(() => UserRoomReactionEntity, (userReaction) => userReaction.room, { cascade: true })
   userReactions: UserRoomReactionEntity[];
 
   @ApiProperty()

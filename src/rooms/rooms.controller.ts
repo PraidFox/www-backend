@@ -4,6 +4,7 @@ import { RoomsService } from './rooms.service';
 import { UsersRoomService } from '../users/usersRoom.service';
 import { CreateRoomDto, UpdateRoomDto } from './dto/create-room.dto';
 import { CreateCommentDto, UpdateCommentDto } from './dto/create-comment.dto';
+import { UpdateUserReactionDto } from './dto/create-user-reaction.dto';
 
 @ApiTags('Rooms')
 @Controller('rooms')
@@ -16,6 +17,11 @@ export class RoomsController {
   @Get(':roomId')
   async getRoom(@Param('roomId') roomId: number) {
     return this.roomsService.getRoom(roomId);
+  }
+
+  @Get(':roomId/full')
+  async getRoomFull(@Param('roomId') roomId: number) {
+    return this.roomsService.getRoomFull(roomId);
   }
 
   @Get('myRoomsIsAuthor/:idUser')
@@ -48,23 +54,18 @@ export class RoomsController {
     await this.roomsService.deleteRoom(roomId);
   }
 
-  @Patch(':roomId/addComment')
+  @Post('createComment')
   async addComment(@Body() commentDto: CreateCommentDto) {
     await this.roomsService.createComment(commentDto);
   }
 
-  @Patch(':roomId/updateComment')
+  @Patch('updateComment')
   async updateComment(@Body() commentDto: UpdateCommentDto) {
     await this.roomsService.updateComment(commentDto);
   }
 
-  @Delete(':roomId/updateComment/:commentId')
-  async deleteComment(@Param('commentId') commentId: number) {
-    await this.roomsService.deleteComment(commentId);
+  @Patch('updateReaction')
+  async updateResponseLocations(@Body() body: UpdateUserReactionDto) {
+    await this.roomsService.updateReaction(body);
   }
-
-  // @Patch(':roomId/updateReaction')
-  // async updateResponseLocations(@Body() body: UpdateLocationReactionDto) {
-  //   await this.roomsService.updateReaction(body);
-  // }
 }

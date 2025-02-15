@@ -6,12 +6,11 @@ import { CreateRoomDto, UpdateRoomDto } from './dto/create-room.dto';
 import { UserMinInfo } from '../users/entities/user.entity';
 import { CreateCommentDto, UpdateCommentDto } from './dto/create-comment.dto';
 import { CommentEntity } from './entities/comment.entity';
-import { CreateLocationReactionDto } from './dto/create-location-reaction.dto';
 import { UserRoomReactionEntity } from './entities/room-user-reaction.entity';
 import { RoomLocationEntity } from './entities/room-location.entity';
 import { RoomMemberEntity } from './entities/room-user';
-import { RoomLocationUserReaction, RoomStatus } from '../utils/constants/constants';
-import { LocationEntity } from '../locations/entities/location.entity';
+import { RoomStatus } from '../utils/constants/constants';
+import { UpdateUserReactionDto } from './dto/create-user-reaction.dto';
 
 //Может стоит комментарии вынести в отдельный модуль? Или будут жить только в части комнат? Или вообще вынести другие части?
 @Injectable()
@@ -49,11 +48,11 @@ export class RoomsService {
     const room = await this.roomsRepository.findOne({
       where: { id },
       relations: {
-        locations: true,
+        locations: { location: true },
         members: { member: true },
         author: true,
-        userReactions: true,
-        comments: true,
+        userReactions: { location: true, user: true },
+        comments: { author: true },
       },
     });
     if (room) {
@@ -83,23 +82,10 @@ export class RoomsService {
   async createRoom(createRoomDto: CreateRoomDto) {
     let newRoom = await this.buildRoomEntity(createRoomDto);
     try {
-      console.log('newRoom', newRoom);
       newRoom = await this.roomsRepository.save(newRoom);
     } catch (error) {
-      throw new Error('Ошибка при создания новой комнаты: ' + error.message);
+      throw new Error('Ошибка при создании новой комнаты: ' + error.message);
     }
-
-    newRoom.locations.forEach((location) => {
-      newRoom.members.forEach((member) => {
-        this.createReaction({
-          roomId: newRoom.id,
-          userId: member.id,
-          locationId: location.id,
-          reaction: RoomLocationUserReaction.NOT_REACTION,
-        });
-      });
-    });
-
     return newRoom;
   }
 
@@ -111,10 +97,6 @@ export class RoomsService {
 
     try {
       room = await this.roomsRepository.save(room);
-      room.locations.forEach((location) => {
-        //TODO поиск локации пользователя если есть ничего не делаем, если нет создаём и видимо очищаем то что стало нул? хотя оно же само не станет нулом
-      });
-
       this.clearNullRoomLinks();
       return room;
     } catch (error) {
@@ -127,11 +109,10 @@ export class RoomsService {
   }
 
   async createComment(commentDto: CreateCommentDto) {
-    //Не чекаю существует ли такой объект по id? Настолько верю фронту? Хм...
     await this.commentRepository.save({
       text: commentDto.text,
       author: { id: commentDto.authorId } as UserMinInfo,
-      room: { id: commentDto.room } as RoomEntity,
+      room: { id: commentDto.roomId } as RoomEntity,
     });
   }
 
@@ -143,20 +124,9 @@ export class RoomsService {
     await this.commentRepository.delete(commentId);
   }
 
-  async createReaction(locationReactionDto: CreateLocationReactionDto) {
-    const reaction = this.userRoomReactionEntityRepository.create({
-      room: { id: locationReactionDto.roomId } as RoomEntity,
-      user: { id: locationReactionDto.userId } as UserMinInfo,
-      location: { id: locationReactionDto.locationId } as LocationEntity,
-      reaction: RoomLocationUserReaction.NOT_REACTION,
-    });
-
-    await this.userRoomReactionEntityRepository.save(reaction);
+  async updateReaction(userReactionDto: UpdateUserReactionDto) {
+    await this.userRoomReactionEntityRepository.update(userReactionDto.id, userReactionDto);
   }
-
-  // async updateReaction(locationReactionDto: UpdateLocationReactionDto) {
-  //   await this.userRoomReactionEntityRepository.update(locationReactionDto.id, locationReactionDto);
-  // }
 
   async clearNullRoomLinks(): Promise<void> {
     await this.roomLocationRepository.manager.transaction(async (entityManager: EntityManager) => {
@@ -174,12 +144,12 @@ export class RoomsService {
         .where('roomId IS NULL')
         .execute();
 
-      // await entityManager
-      //   .createQueryBuilder()
-      //   .delete()
-      //   .from(UserRoomReactionEntity)
-      //   .where('roomId IS NULL')
-      //   .execute();
+      await entityManager
+        .createQueryBuilder()
+        .delete()
+        .from(UserRoomReactionEntity)
+        .where('roomId IS NULL')
+        .execute();
     });
   }
 
@@ -248,6 +218,19 @@ export class RoomsService {
     if (locations.length > 0) {
       newRoom.locations = locations;
     }
+
+    const userReactions: UserRoomReactionEntity[] = [];
+
+    newRoom.locations.forEach((location) => {
+      newRoom.members.forEach((member) => {
+        userReactions.push({
+          user: { id: member.member.id } as UserMinInfo,
+          location: location.location,
+        } as UserRoomReactionEntity);
+      });
+    });
+
+    newRoom.userReactions = userReactions;
 
     if (roomDto instanceof CreateRoomDto) {
       newRoom.roomStatus = RoomStatus.CREATED;
