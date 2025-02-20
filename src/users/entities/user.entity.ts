@@ -5,7 +5,7 @@ import { UserSessionEntity } from '../../auth/entities/user-session.entity';
 import { RoomEntity } from '../../rooms/entities/room.entity';
 import { CommentEntity } from '../../rooms/entities/comment.entity';
 import { UserRoomReactionEntity } from '../../rooms/entities/room-user-reaction.entity';
-import { RoomMemberEntity } from '../../rooms/entities/room-user';
+import { RoomMemberEntity } from '../../rooms/entities/room-user.entity';
 
 @Entity('users')
 export class UserEntity extends BaseEntity {

@@ -8,7 +8,7 @@ import { CreateCommentDto, UpdateCommentDto } from './dto/create-comment.dto';
 import { CommentEntity } from './entities/comment.entity';
 import { UserRoomReactionEntity } from './entities/room-user-reaction.entity';
 import { RoomLocationEntity } from './entities/room-location.entity';
-import { RoomMemberEntity } from './entities/room-user';
+import { RoomMemberEntity } from './entities/room-user.entity';
 import { RoomStatus } from '../utils/constants/constants';
 import { UpdateUserReactionDto } from './dto/create-user-reaction.dto';
 
@@ -81,6 +81,7 @@ export class RoomsService {
   /**Перед созданием комнаты, если есть новые локации создаст их*/
   async createRoom(createRoomDto: CreateRoomDto) {
     let newRoom = await this.buildRoomEntity(createRoomDto);
+    console.log('newRoom', newRoom);
     try {
       newRoom = await this.roomsRepository.save(newRoom);
     } catch (error) {
@@ -104,8 +105,14 @@ export class RoomsService {
     }
   }
 
-  deleteRoom(id: number) {
+  async deleteRoom(id: number) {
     return this.roomsRepository.delete(id);
+
+    // const room = await this.roomsRepository.findOne({ where: { id } });
+    // if (room) {
+    //   return this.roomsRepository.remove(room);
+    // }
+    // throw new Error('Room not found');
   }
 
   async createComment(commentDto: CreateCommentDto) {
@@ -126,6 +133,12 @@ export class RoomsService {
 
   async updateReaction(userReactionDto: UpdateUserReactionDto) {
     await this.userRoomReactionEntityRepository.update(userReactionDto.id, userReactionDto);
+  }
+
+  async findUserReaction(userId: number, roomId: number, locationId: number) {
+    return await this.userRoomReactionEntityRepository.findOne({
+      where: [{ user: { id: userId }, room: { id: roomId }, location: { id: locationId } }],
+    });
   }
 
   async clearNullRoomLinks(): Promise<void> {
@@ -153,8 +166,8 @@ export class RoomsService {
     });
   }
 
-  private async buildRoomEntity(roomDto: CreateRoomDto | UpdateRoomDto) {
-    const newRoom = this.roomsRepository.create({
+  private async buildRoomEntity(roomDto: CreateRoomDto | UpdateRoomDto): Promise<RoomEntity> {
+    const roomEntity = this.roomsRepository.create({
       title: roomDto.title,
       exactDate: roomDto.exactDate,
       dateType: roomDto.dateType,
@@ -164,16 +177,31 @@ export class RoomsService {
     });
 
     if (roomDto instanceof CreateRoomDto) {
-      newRoom.members = roomDto.membersId.map(
+      roomEntity.author = { id: roomDto.authorId } as UserMinInfo;
+    }
+
+    await this.processMembers(roomEntity, roomDto);
+    await this.processLocations(roomEntity, roomDto);
+    await this.processReactions(roomEntity, roomDto);
+
+    if (roomDto instanceof CreateRoomDto) {
+      roomEntity.roomStatus = RoomStatus.CREATED;
+    }
+
+    return roomEntity;
+  }
+
+  private async processMembers(roomEntity: RoomEntity, roomDto: CreateRoomDto | UpdateRoomDto) {
+    if (roomDto instanceof CreateRoomDto) {
+      roomEntity.members = roomDto.membersId.map(
         (memberId) =>
           ({
             member: { id: memberId },
           }) as RoomMemberEntity,
       );
     }
-
     if (roomDto instanceof UpdateRoomDto) {
-      newRoom.members = roomDto.members.map(
+      roomEntity.members = roomDto.members.map(
         (member) =>
           ({
             id: member.linkId,
@@ -181,11 +209,9 @@ export class RoomsService {
           }) as RoomMemberEntity,
       );
     }
+  }
 
-    if (roomDto instanceof CreateRoomDto) {
-      newRoom.author = { id: roomDto.authorId } as UserMinInfo;
-    }
-
+  private async processLocations(roomEntity: RoomEntity, roomDto: CreateRoomDto | UpdateRoomDto) {
     const locations: RoomLocationEntity[] = [];
 
     if (roomDto.existingLocationsAndDetails) {
@@ -193,7 +219,7 @@ export class RoomsService {
         ...roomDto.existingLocationsAndDetails.map(
           (location) =>
             ({
-              id: location.linkId,
+              id: location.linkId == 0 ? undefined : location.linkId,
               location: { id: location.existingLocationsId },
               description: location.description,
               exactDate: location.exactDate,
@@ -216,26 +242,38 @@ export class RoomsService {
     }
 
     if (locations.length > 0) {
-      newRoom.locations = locations;
+      roomEntity.locations = locations;
     }
+  }
 
+  private async processReactions(roomEntity: RoomEntity, roomDto: CreateRoomDto | UpdateRoomDto) {
     const userReactions: UserRoomReactionEntity[] = [];
 
-    newRoom.locations.forEach((location) => {
-      newRoom.members.forEach((member) => {
-        userReactions.push({
-          user: { id: member.member.id } as UserMinInfo,
-          location: location.location,
-        } as UserRoomReactionEntity);
-      });
-    });
-
-    newRoom.userReactions = userReactions;
-
-    if (roomDto instanceof CreateRoomDto) {
-      newRoom.roomStatus = RoomStatus.CREATED;
+    if (roomDto instanceof UpdateRoomDto) {
+      for (const location of roomEntity.locations) {
+        for (const member of roomEntity.members) {
+          const reaction = await this.findUserReaction(member.member.id, roomDto.id, location.location.id);
+          if (reaction) {
+            userReactions.push(reaction);
+          } else {
+            userReactions.push({
+              user: { id: member.member.id } as UserMinInfo,
+              location: location.location,
+            } as UserRoomReactionEntity);
+          }
+        }
+      }
+    } else {
+      for (const location of roomEntity.locations) {
+        for (const member of roomEntity.members) {
+          userReactions.push({
+            user: { id: member.member.id } as UserMinInfo,
+            location: location.location,
+          } as UserRoomReactionEntity);
+        }
+      }
     }
 
-    return newRoom;
+    roomEntity.userReactions = userReactions;
   }
 }

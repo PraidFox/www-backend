@@ -4,7 +4,7 @@ import { UserEntity, UserMinInfo } from '../../users/entities/user.entity';
 import { CommentEntity } from './comment.entity';
 import { UserRoomReactionEntity } from './room-user-reaction.entity';
 import { RoomLocationEntity } from './room-location.entity';
-import { RoomMemberEntity } from './room-user';
+import { RoomMemberEntity } from './room-user.entity';
 import { DateType, RoomStatus } from '../../utils/constants/constants';
 
 @Entity('rooms')
@@ -38,7 +38,9 @@ export class RoomEntity extends BaseEntity {
   exactDate: Date;
 
   @ApiProperty()
-  @OneToMany(() => UserRoomReactionEntity, (userReaction) => userReaction.room, { cascade: true })
+  @OneToMany(() => UserRoomReactionEntity, (userReaction) => userReaction.room, {
+    cascade: true,
+  })
   userReactions: UserRoomReactionEntity[];
 
   @ApiProperty()

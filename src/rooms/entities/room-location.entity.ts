@@ -8,7 +8,7 @@ export class RoomLocationEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => RoomEntity, (room) => room.locations)
+  @ManyToOne(() => RoomEntity, (room) => room.locations, { onDelete: 'CASCADE' })
   room: RoomEntity;
 
   @ManyToOne(() => LocationEntity, { cascade: true })

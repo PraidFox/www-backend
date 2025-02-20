@@ -18,6 +18,6 @@ export class CommentEntity extends BaseEntity {
   author: UserEntity;
 
   @ApiProperty()
-  @ManyToOne(() => RoomEntity, (room) => room.comments)
+  @ManyToOne(() => RoomEntity, (room) => room.comments, { onDelete: 'CASCADE' })
   room: RoomEntity;
 }

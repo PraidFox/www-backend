@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RoomMemberEntity } from './entities/room-user';
+import { RoomMemberEntity } from './entities/room-user.entity';
 import { RoomEntity } from './entities/room.entity';
 import { CommentEntity } from './entities/comment.entity';
 import { RoomsController } from './rooms.controller';

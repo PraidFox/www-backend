@@ -11,7 +11,7 @@ export class RoomMemberEntity {
   @ManyToOne(() => UserEntity, (user) => user.rooms)
   member: UserEntity;
 
-  @ManyToOne(() => RoomEntity, (room) => room.members)
+  @ManyToOne(() => RoomEntity, (room) => room.members, { onDelete: 'CASCADE' })
   room: RoomEntity;
 
   @Column({ type: 'enum', enum: MemberStatus, default: MemberStatus.NOT_VIEWED })

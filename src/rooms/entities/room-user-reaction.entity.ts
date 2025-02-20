@@ -16,7 +16,7 @@ export class UserRoomReactionEntity {
   user: UserMinInfo;
 
   @ApiProperty()
-  @ManyToOne(() => RoomEntity, (room) => room.userReactions)
+  @ManyToOne(() => RoomEntity, (room) => room.userReactions, { onDelete: 'CASCADE' })
   room: RoomEntity;
 
   @ApiProperty()
