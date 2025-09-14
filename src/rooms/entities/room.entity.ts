@@ -1,6 +1,6 @@
 import { BaseEntity, Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-import { UserEntity, UserMinInfo } from '../../users/entities/user.entity';
+import { UserEntity } from '../../users/entities/user.entity';
 import { CommentEntity } from './comment.entity';
 import { UserRoomReactionEntity } from './room-user-reaction.entity';
 import { RoomLocationEntity } from './room-location.entity';
@@ -45,7 +45,7 @@ export class RoomEntity extends BaseEntity {
 
   @ApiProperty()
   @ManyToOne(() => UserEntity, (user) => user.roomsIsAuthor)
-  author: UserMinInfo; //TODO проверить какой же всё таки объект будет возвращаться UserMinInfo или UserEntity?
+  author: UserEntity;
 
   @ApiProperty()
   @OneToMany(() => CommentEntity, (comment) => comment.room)

@@ -1,11 +1,12 @@
 import { InjectRepository } from '@nestjs/typeorm';
-import { UserEntity, UserNotPassword } from './entities/user.entity';
+import { UserEntity } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import { CreateUserDto, UpdateUserDto } from './dto/user.dto';
 import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { MyError } from '../utils/constants/errors';
 import { compare, genSalt, hash } from 'bcryptjs';
 import { PasswordChangeDto } from '../auth/dto/auth.dto';
+import { UserMinInfo } from './dto/user.interfaces';
 
 @Injectable()
 export class UsersService {
@@ -23,14 +24,14 @@ export class UsersService {
     return { users, count };
   }
 
-  async getSessionsUser(userId: number): Promise<UserNotPassword> {
+  async getSessionsUser(userId: number): Promise<UserMinInfo> {
     return await this.usersRepository.findOne({
       where: [{ id: userId }],
       relations: { sessions: true },
     });
   }
 
-  async getUserById(id: number, withDeleted: boolean = false): Promise<UserNotPassword> {
+  async getUserById(id: number, withDeleted: boolean = false): Promise<UserMinInfo> {
     if (!id) {
       throw new NotFoundException(MyError.FAIL_ID);
     }
@@ -64,7 +65,7 @@ export class UsersService {
     }
   }
 
-  async findUserEmailOrLogin(emailOrLogin: string): Promise<UserNotPassword> {
+  async findUserEmailOrLogin(emailOrLogin: string): Promise<UserMinInfo> {
     return await this.usersRepository.findOne({
       where: [{ login: emailOrLogin }, { email: emailOrLogin }],
     });

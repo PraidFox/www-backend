@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
-export class CreateLocationDto {
+export class CreateLocationDTO {
   @ApiProperty()
   @IsString()
   @IsNotEmpty({ message: 'Название локации точно должно быть' })

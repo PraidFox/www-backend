@@ -1,7 +1,7 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { UserEntity, UserMinInfo } from '../../users/entities/user.entity';
 import { RoomEntity } from './room.entity';
-import { LocationEntity } from '../../locations/entities/location.entity';
+import { UserLocationEntity } from '../../locations/entities/user-location.entity';
 import { RoomLocationUserReaction } from '../../utils/constants/constants';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -20,10 +20,10 @@ export class UserRoomReactionEntity {
   room: RoomEntity;
 
   @ApiProperty()
-  @ManyToOne(() => LocationEntity)
-  location: LocationEntity;
+  @ManyToOne(() => UserLocationEntity)
+  location: UserLocationEntity;
 
   @ApiProperty()
   @Column({ type: 'enum', enum: RoomLocationUserReaction, default: RoomLocationUserReaction.NOT_REACTION })
-  reaction: RoomLocationUserReaction; // или любые другие значения, отражающие реакцию
+  reaction: RoomLocationUserReaction;
 }

@@ -4,11 +4,11 @@ import { MyError } from '../utils/constants/errors';
 import { AuthDto, PasswordChangeDto, RegisterDto } from './dto/auth.dto';
 import { DataRefreshToken, DecodedAccessToken } from '../utils/interfaces';
 import { EmailService } from '../email/email.service';
-import { UserNotPassword } from '../users/entities/user.entity';
 import { SessionService } from './session.service';
 import { UserSessionEntity } from './entities/user-session.entity';
 import { Request } from 'express';
 import { TokenService } from './token.service';
+import { UserMinInfo } from '../users/dto/user.interfaces';
 
 @Injectable()
 export class AuthService {
@@ -35,7 +35,7 @@ export class AuthService {
     return await this.userService.createUser(registerDto);
   }
 
-  async sendVerifyEmail(user: UserNotPassword, url: string) {
+  async sendVerifyEmail(user: UserMinInfo, url: string) {
     if (user.emailVerifiedAt) {
       throw new UnauthorizedException(MyError.VERIFICATION_EMAIL_ALREADY);
     }

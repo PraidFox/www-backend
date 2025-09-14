@@ -4,67 +4,82 @@ import { RoomEntity } from './entities/room.entity';
 import { EntityManager, Repository } from 'typeorm';
 import { CreateRoomDto, UpdateRoomDto } from './dto/create-room.dto';
 import { UserMinInfo } from '../users/entities/user.entity';
-import { CreateCommentDto, UpdateCommentDto } from './dto/create-comment.dto';
-import { CommentEntity } from './entities/comment.entity';
 import { UserRoomReactionEntity } from './entities/room-user-reaction.entity';
 import { RoomLocationEntity } from './entities/room-location.entity';
 import { RoomMemberEntity } from './entities/room-user.entity';
 import { RoomStatus } from '../utils/constants/constants';
 import { UpdateUserReactionDto } from './dto/create-user-reaction.dto';
+import { UserLocationEntity } from '../locations/entities/user-location.entity';
+import { LocationsService } from '../locations/locations.service';
 
-//Может стоит комментарии вынести в отдельный модуль? Или будут жить только в части комнат? Или вообще вынести другие части?
 @Injectable()
 export class RoomsService {
   constructor(
     @InjectRepository(RoomEntity)
     private roomsRepository: Repository<RoomEntity>,
-    @InjectRepository(CommentEntity)
-    private commentRepository: Repository<CommentEntity>,
     @InjectRepository(UserRoomReactionEntity)
     private userRoomReactionEntityRepository: Repository<UserRoomReactionEntity>,
     @InjectRepository(RoomLocationEntity)
     private roomLocationRepository: Repository<RoomLocationEntity>,
-    @InjectRepository(RoomMemberEntity)
-    private userRoomRepository: Repository<RoomMemberEntity>,
-
-    //private readonly locationsService: LocationsService,
+    private locationService: LocationsService,
   ) {}
 
   async getRoom(id: number) {
-    //TODO узнать как ограничить возвращаемые данные в author и member. UPD походу только ручной труд
     const room = await this.roomsRepository.findOne({
       where: { id },
-      relations: { locations: { location: true }, members: { member: true }, author: true },
+      relations: {
+        locations: { userLocation: true, generalLocation: true },
+        members: { member: true },
+      },
     });
-    if (room) {
-      //
-      return room;
-    } else {
-      throw new NotFoundException('Такой комнаты нет');
-    }
+
+    //room.members = await this.getRoomMembersMinimal(id);
+    room.author = await this.getRoomAuthorMinimal(id);
+
+    console.log(room.members[0]);
+
+    return room;
   }
 
   async getRoomFull(id: number) {
     const room = await this.roomsRepository.findOne({
       where: { id },
       relations: {
-        locations: { location: true },
-        members: { member: true },
-        author: true,
+        locations: { userLocation: true, generalLocation: true },
         userReactions: { location: true, user: true },
         comments: { author: true },
+        // members: { member: true },
+        // author: true,
       },
     });
-    if (room) {
-      //const membersWithStatus = room.members.map((roomUser) => ({
-      //   user: roomUser.member, // здесь берем данные о пользователе
-      //   status: roomUser.status, // и статус
-      // }));
 
-      return room;
-    } else {
+    if (!room) {
       throw new NotFoundException('Такой комнаты нет');
     }
+
+    room.members = await this.getRoomMembersMinimal(id);
+    room.author = await this.getRoomAuthorMinimal(id);
+
+    return room;
+  }
+
+  private async getRoomMembersMinimal(roomId: number) {
+    return await this.roomsRepository
+      .createQueryBuilder('room')
+      .leftJoin('room.members', 'members')
+      .leftJoin('members.member', 'member')
+      .select(['members.id', 'members.status', 'members.role', 'member.id', 'member.login'])
+      .where('room.id = :roomId', { roomId })
+      .getRawMany();
+  }
+
+  private async getRoomAuthorMinimal(roomId: number) {
+    return await this.roomsRepository
+      .createQueryBuilder('room')
+      .leftJoin('room.author', 'author')
+      .select(['author.id', 'author.login'])
+      .where('room.id = :roomId', { roomId })
+      .getRawOne();
   }
 
   /** Проверка доступа пользователя к комнате (автор или участник)*/
@@ -80,7 +95,7 @@ export class RoomsService {
 
   /**Перед созданием комнаты, если есть новые локации создаст их*/
   async createRoom(createRoomDto: CreateRoomDto) {
-    let newRoom = await this.buildRoomEntity(createRoomDto);
+    let newRoom = await this.buildRoomEntity(createRoomDto, createRoomDto.authorId);
     console.log('newRoom', newRoom);
     try {
       newRoom = await this.roomsRepository.save(newRoom);
@@ -90,10 +105,10 @@ export class RoomsService {
     return newRoom;
   }
 
-  async updateRoom(updateRoomDto: UpdateRoomDto) {
+  async updateRoom(updateRoomDto: UpdateRoomDto, userId: number) {
     await this.getRoom(updateRoomDto.id);
 
-    let room = await this.buildRoomEntity(updateRoomDto);
+    let room = await this.buildRoomEntity(updateRoomDto, userId);
     room.id = updateRoomDto.id;
 
     try {
@@ -113,22 +128,6 @@ export class RoomsService {
     //   return this.roomsRepository.remove(room);
     // }
     // throw new Error('Room not found');
-  }
-
-  async createComment(commentDto: CreateCommentDto) {
-    await this.commentRepository.save({
-      text: commentDto.text,
-      author: { id: commentDto.authorId } as UserMinInfo,
-      room: { id: commentDto.roomId } as RoomEntity,
-    });
-  }
-
-  async updateComment(commentDto: UpdateCommentDto) {
-    await this.commentRepository.update(commentDto.id, commentDto);
-  }
-
-  async deleteComment(commentId: number) {
-    await this.commentRepository.delete(commentId);
   }
 
   async updateReaction(userReactionDto: UpdateUserReactionDto) {
@@ -166,7 +165,7 @@ export class RoomsService {
     });
   }
 
-  private async buildRoomEntity(roomDto: CreateRoomDto | UpdateRoomDto): Promise<RoomEntity> {
+  private async buildRoomEntity(roomDto: CreateRoomDto | UpdateRoomDto, userId: number): Promise<RoomEntity> {
     const roomEntity = this.roomsRepository.create({
       title: roomDto.title,
       exactDate: roomDto.exactDate,
@@ -177,11 +176,12 @@ export class RoomsService {
     });
 
     if (roomDto instanceof CreateRoomDto) {
-      roomEntity.author = { id: roomDto.authorId } as UserMinInfo;
+      //roomEntity.author = { id: roomDto.authorId }; !!!!!!!!!!!!
     }
 
+    //TODO отказаться от каскадного создания?
     await this.processMembers(roomEntity, roomDto);
-    await this.processLocations(roomEntity, roomDto);
+    await this.processLocations(roomEntity, roomDto, userId);
     await this.processReactions(roomEntity, roomDto);
 
     if (roomDto instanceof CreateRoomDto) {
@@ -211,7 +211,11 @@ export class RoomsService {
     }
   }
 
-  private async processLocations(roomEntity: RoomEntity, roomDto: CreateRoomDto | UpdateRoomDto) {
+  private async processLocations(
+    roomEntity: RoomEntity,
+    roomDto: CreateRoomDto | UpdateRoomDto,
+    userId: number,
+  ) {
     const locations: RoomLocationEntity[] = [];
 
     if (roomDto.existingLocationsAndDetails) {
@@ -220,7 +224,8 @@ export class RoomsService {
           (location) =>
             ({
               id: location.linkId == 0 ? undefined : location.linkId,
-              location: { id: location.existingLocationsId },
+              userLocation: location.type == 'user location' && { id: location.existingLocationsId },
+              generalLocation: location.type == 'general' && { id: location.existingLocationsId },
               description: location.description,
               exactDate: location.exactDate,
             }) as RoomLocationEntity,
@@ -229,11 +234,20 @@ export class RoomsService {
     }
 
     if (roomDto.newLocationsAndDetails) {
+      roomDto.newLocationsAndDetails.forEach((location) => {
+        this.locationService.newLocation(location.newLocation);
+      });
+
       locations.push(
         ...roomDto.newLocationsAndDetails.map(
           (location) =>
             ({
-              location: location.newLocation,
+              userLocation: {
+                name: location.newLocation.name,
+                url: location.newLocation.url,
+                address: location.newLocation.address,
+                user: { id: userId },
+              } as UserLocationEntity,
               description: location.description,
               exactDate: location.exactDate,
             }) as RoomLocationEntity,
@@ -252,13 +266,17 @@ export class RoomsService {
     if (roomDto instanceof UpdateRoomDto) {
       for (const location of roomEntity.locations) {
         for (const member of roomEntity.members) {
-          const reaction = await this.findUserReaction(member.member.id, roomDto.id, location.location.id);
+          const reaction = await this.findUserReaction(
+            member.member.id,
+            roomDto.id,
+            location.userLocation.id,
+          );
           if (reaction) {
             userReactions.push(reaction);
           } else {
             userReactions.push({
               user: { id: member.member.id } as UserMinInfo,
-              location: location.location,
+              location: location.userLocation,
             } as UserRoomReactionEntity);
           }
         }
@@ -268,7 +286,7 @@ export class RoomsService {
         for (const member of roomEntity.members) {
           userReactions.push({
             user: { id: member.member.id } as UserMinInfo,
-            location: location.location,
+            location: location.userLocation,
           } as UserRoomReactionEntity);
         }
       }

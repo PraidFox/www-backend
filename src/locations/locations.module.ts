@@ -2,10 +2,11 @@ import { Module } from '@nestjs/common';
 import { LocationsService } from './locations.service';
 import { LocationsController } from './locations.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { LocationEntity } from './entities/location.entity';
+import { UserLocationEntity } from './entities/user-location.entity';
+import { GeneralLocationEntity } from './entities/general-location.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([LocationEntity])],
+  imports: [TypeOrmModule.forFeature([UserLocationEntity, GeneralLocationEntity])],
   controllers: [LocationsController],
   providers: [LocationsService],
 })

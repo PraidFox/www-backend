@@ -15,7 +15,7 @@ import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@ne
 import { UpdateUserDto } from './dto/user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt.guards';
 import { Request } from 'express';
-import { UserEntity, UserMinInfo, UserNotPassword } from './entities/user.entity';
+import { UserEntity } from './entities/user.entity';
 import { AllUser } from './dto/response.dto';
 import { DecodedAccessToken } from '../utils/interfaces';
 import { MyError } from '../utils/constants/errors';

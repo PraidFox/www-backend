@@ -1,14 +1,16 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { BaseEntity } from '../../utils/base.entity';
+import { BaseEntityMinimal } from '../../utils/base.entity';
 import { ApiProperty } from '@nestjs/swagger';
 import { UserSessionEntity } from '../../auth/entities/user-session.entity';
 import { RoomEntity } from '../../rooms/entities/room.entity';
 import { CommentEntity } from '../../rooms/entities/comment.entity';
 import { UserRoomReactionEntity } from '../../rooms/entities/room-user-reaction.entity';
 import { RoomMemberEntity } from '../../rooms/entities/room-user.entity';
+import { UserLocationEntity } from '../../locations/entities/user-location.entity';
+import { FriendEntity } from './friend.entity';
 
 @Entity('users')
-export class UserEntity extends BaseEntity {
+export class UserEntity extends BaseEntityMinimal {
   @ApiProperty()
   @PrimaryGeneratedColumn()
   id: number;
@@ -18,7 +20,7 @@ export class UserEntity extends BaseEntity {
   login: string;
 
   @ApiProperty()
-  @Column({ unique: true })
+  @Column({ unique: true, select: false })
   email: string;
 
   @Column({ select: false })
@@ -28,7 +30,7 @@ export class UserEntity extends BaseEntity {
   tmpPassword: string;
 
   @ApiProperty()
-  @Column({ type: 'timestamp with time zone', nullable: true })
+  @Column({ type: 'timestamp with time zone', nullable: true, select: false })
   emailVerifiedAt: Date;
 
   @ApiProperty()
@@ -44,14 +46,18 @@ export class UserEntity extends BaseEntity {
   rooms: RoomMemberEntity[];
 
   @ApiProperty()
+  @OneToMany(() => FriendEntity, (friend) => friend.user)
+  friends: FriendEntity[];
+
+  @ApiProperty()
   @OneToMany(() => UserRoomReactionEntity, (userReaction) => userReaction.user)
   userReactions: UserRoomReactionEntity[];
 
   @ApiProperty()
   @OneToMany(() => CommentEntity, (comment) => comment.author)
   comments: CommentEntity[];
+
+  @ApiProperty()
+  @OneToMany(() => UserLocationEntity, (location) => location.user)
+  locations: UserLocationEntity[];
 }
-
-export interface UserNotPassword extends Omit<UserEntity, 'password' | 'tmpPassword'> {}
-
-export interface UserMinInfo extends Pick<UserEntity, 'id' | 'login'> {}

@@ -1,25 +1,31 @@
-import { ApiTags } from '@nestjs/swagger';
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req } from '@nestjs/common';
 import { RoomsService } from './rooms.service';
+import { CommentsService } from './comments.service';
 import { UsersRoomService } from '../users/usersRoom.service';
 import { CreateRoomDto, UpdateRoomDto } from './dto/create-room.dto';
 import { CreateCommentDto, UpdateCommentDto } from './dto/create-comment.dto';
 import { UpdateUserReactionDto } from './dto/create-user-reaction.dto';
+import { Request } from 'express';
+import { DecodedAccessToken } from '../utils/interfaces';
 
 @ApiTags('Rooms')
 @Controller('rooms')
 export class RoomsController {
   constructor(
     private readonly roomsService: RoomsService,
+    private readonly commentsService: CommentsService,
     private readonly usersRoomService: UsersRoomService,
   ) {}
 
   @Get(':roomId')
+  @ApiOperation({ summary: 'Возвращает минимальную информацию по комнате' })
   async getRoom(@Param('roomId') roomId: number) {
     return this.roomsService.getRoom(roomId);
   }
 
   @Get(':roomId/full')
+  @ApiOperation({ summary: 'Возвращает полную информацию по комнате' })
   async getRoomFull(@Param('roomId') roomId: number) {
     return this.roomsService.getRoomFull(roomId);
   }
@@ -45,8 +51,9 @@ export class RoomsController {
   }
 
   @Patch()
-  async update(@Body() body: UpdateRoomDto) {
-    return this.roomsService.updateRoom(body);
+  async update(@Body() body: UpdateRoomDto, @Req() req: Request) {
+    const { id } = req.user as DecodedAccessToken;
+    return this.roomsService.updateRoom(body, id);
   }
 
   @Delete(':roomId')
@@ -56,12 +63,12 @@ export class RoomsController {
 
   @Post('createComment')
   async addComment(@Body() commentDto: CreateCommentDto) {
-    await this.roomsService.createComment(commentDto);
+    await this.commentsService.createComment(commentDto);
   }
 
   @Patch('updateComment')
   async updateComment(@Body() commentDto: UpdateCommentDto) {
-    await this.roomsService.updateComment(commentDto);
+    await this.commentsService.updateComment(commentDto);
   }
 
   @Patch('updateReaction')

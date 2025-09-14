@@ -10,7 +10,7 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { CreateLocationDto } from '../../locations/dto/create-location.dto';
+import { CreateLocationDTO } from '../../locations/dto/create-location-and-author.dto';
 import { Transform, Type } from 'class-transformer';
 import { DateType } from '../../utils/constants/constants';
 
@@ -118,8 +118,8 @@ class DetailsForWhere {
 export class NewLocationAndDetailsDto extends DetailsForWhere {
   @ApiProperty()
   @ValidateNested()
-  @Type(() => CreateLocationDto)
-  newLocation: CreateLocationDto;
+  @Type(() => CreateLocationDTO)
+  newLocation: CreateLocationDTO;
 }
 
 export class LocationAndDetailsDto extends DetailsForWhere {
@@ -130,6 +130,10 @@ export class LocationAndDetailsDto extends DetailsForWhere {
   @ApiProperty()
   @IsNumber()
   existingLocationsId: number;
+
+  @ApiProperty()
+  @IsString()
+  type: 'general' | 'user location';
 }
 
 //TODO завести декоратор, который будет проверять что бы startDate/endDate или exactDate были заполнены
