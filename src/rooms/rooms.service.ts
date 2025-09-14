@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { RoomEntity } from './entities/room.entity';
 import { EntityManager, Repository } from 'typeorm';
 import { CreateRoomDto, UpdateRoomDto } from './dto/create-room.dto';
-import { UserMinInfo } from '../users/entities/user.entity';
 import { UserRoomReactionEntity } from './entities/room-user-reaction.entity';
 import { RoomLocationEntity } from './entities/room-location.entity';
 import { RoomMemberEntity } from './entities/room-user.entity';
@@ -24,32 +23,14 @@ export class RoomsService {
     private locationService: LocationsService,
   ) {}
 
+  //TODO после реализации гостей, поставить проверку на доступность комнаты
   async getRoom(id: number) {
     const room = await this.roomsRepository.findOne({
       where: { id },
       relations: {
         locations: { userLocation: true, generalLocation: true },
         members: { member: true },
-      },
-    });
-
-    //room.members = await this.getRoomMembersMinimal(id);
-    room.author = await this.getRoomAuthorMinimal(id);
-
-    console.log(room.members[0]);
-
-    return room;
-  }
-
-  async getRoomFull(id: number) {
-    const room = await this.roomsRepository.findOne({
-      where: { id },
-      relations: {
-        locations: { userLocation: true, generalLocation: true },
-        userReactions: { location: true, user: true },
-        comments: { author: true },
-        // members: { member: true },
-        // author: true,
+        author: true,
       },
     });
 
@@ -57,29 +38,27 @@ export class RoomsService {
       throw new NotFoundException('Такой комнаты нет');
     }
 
-    room.members = await this.getRoomMembersMinimal(id);
-    room.author = await this.getRoomAuthorMinimal(id);
-
     return room;
   }
 
-  private async getRoomMembersMinimal(roomId: number) {
-    return await this.roomsRepository
-      .createQueryBuilder('room')
-      .leftJoin('room.members', 'members')
-      .leftJoin('members.member', 'member')
-      .select(['members.id', 'members.status', 'members.role', 'member.id', 'member.login'])
-      .where('room.id = :roomId', { roomId })
-      .getRawMany();
-  }
+  //TODO после реализации гостей, поставить проверку на доступность комнаты
+  async getRoomFull(id: number) {
+    const room = await this.roomsRepository.findOne({
+      where: { id },
+      relations: {
+        locations: { userLocation: true, generalLocation: true },
+        members: { member: true },
+        author: true,
+        userReactions: { location: true, user: true },
+        comments: { author: true },
+      },
+    });
 
-  private async getRoomAuthorMinimal(roomId: number) {
-    return await this.roomsRepository
-      .createQueryBuilder('room')
-      .leftJoin('room.author', 'author')
-      .select(['author.id', 'author.login'])
-      .where('room.id = :roomId', { roomId })
-      .getRawOne();
+    if (!room) {
+      throw new NotFoundException('Такой комнаты нет');
+    }
+
+    return room;
   }
 
   /** Проверка доступа пользователя к комнате (автор или участник)*/
@@ -275,7 +254,7 @@ export class RoomsService {
             userReactions.push(reaction);
           } else {
             userReactions.push({
-              user: { id: member.member.id } as UserMinInfo,
+              user: { id: member.member.id },
               location: location.userLocation,
             } as UserRoomReactionEntity);
           }
@@ -285,7 +264,7 @@ export class RoomsService {
       for (const location of roomEntity.locations) {
         for (const member of roomEntity.members) {
           userReactions.push({
-            user: { id: member.member.id } as UserMinInfo,
+            user: { id: member.member.id },
             location: location.userLocation,
           } as UserRoomReactionEntity);
         }

@@ -8,7 +8,7 @@ import { SessionService } from './session.service';
 import { UserSessionEntity } from './entities/user-session.entity';
 import { Request } from 'express';
 import { TokenService } from './token.service';
-import { UserMinInfo } from '../users/dto/user.interfaces';
+import { UserPrivateInfo } from '../users/dto/user.interfaces';
 
 @Injectable()
 export class AuthService {
@@ -35,7 +35,7 @@ export class AuthService {
     return await this.userService.createUser(registerDto);
   }
 
-  async sendVerifyEmail(user: UserMinInfo, url: string) {
+  async sendVerifyEmail(user: UserPrivateInfo, url: string) {
     if (user.emailVerifiedAt) {
       throw new UnauthorizedException(MyError.VERIFICATION_EMAIL_ALREADY);
     }
@@ -46,12 +46,10 @@ export class AuthService {
     return verifyToken;
   }
 
-  async verifyEmail(userId: number) {
-    const userEntity = await this.userService.getUserById(userId);
-    if (userEntity) {
-      if (userEntity.emailVerifiedAt == null) {
-        userEntity.emailVerifiedAt = new Date();
-        await userEntity.save();
+  async verifyEmail(user: UserPrivateInfo) {
+    if (user) {
+      if (user.emailVerifiedAt == null) {
+        await this.userService.updateVerifyEmail(user.id);
       } else {
         throw new UnauthorizedException(MyError.VERIFICATION_EMAIL_ALREADY);
       }
@@ -108,14 +106,14 @@ export class AuthService {
   }
 
   async sendMailResetPassword(emailOrLogin: string, url: string) {
-    const existUser = await this.userService.findUserEmailOrLogin(emailOrLogin);
+    const existUser = await this.userService.findUserByEmailOrLoginPrivateInfo(emailOrLogin);
     const verifyToken = await this.tokenService.generateVerifyToken({ id: existUser.id });
     await this.emailService.verifyResetPassword(existUser.email, url, verifyToken);
     return verifyToken;
   }
 
   async sendMailChangePassword(userId: number) {
-    const existUser = await this.userService.getUserById(userId);
+    const existUser = await this.userService.getUserByIdPrivateInfo(userId);
     const verifyToken = await this.tokenService.generateVerifyToken({ id: existUser.id });
     await this.emailService.verifyChangePassword(existUser.email, verifyToken);
     return verifyToken;

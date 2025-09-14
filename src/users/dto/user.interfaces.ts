@@ -1,8 +1,10 @@
 import { UserEntity } from '../entities/user.entity';
 
-export interface UserNotPassword extends Omit<UserEntity, 'password' | 'tmpPassword'> {}
-
-export interface UserMinInfo {
-  id: number;
-  login: string;
-}
+// Типы для TypeScript
+export type UserMinimal = Pick<UserEntity, 'id' | 'login'>;
+export type UserSessions = Pick<UserEntity, 'id' | 'login' | 'sessions'>;
+export type UserCredentials = Pick<UserEntity, 'id' | 'login' | 'password' | 'tmpPassword'>;
+export type UserPrivateInfo = Pick<
+  UserEntity,
+  'id' | 'login' | 'email' | 'emailVerifiedAt' | 'createdAt' | 'updatedAt' | 'deletedAt'
+>;

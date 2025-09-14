@@ -56,7 +56,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async sendVerifyEmail(@Req() req: Request, @Body() body: UrlVerifyEmail): Promise<string> {
     const { id } = req.user as DecodedAccessToken;
-    const user = await this.userService.getUserById(id);
+    const user = await this.userService.getUserByIdPrivateInfo(id);
     return await this.authService.sendVerifyEmail(user, body.urlVerifyEmail);
   }
 
@@ -68,7 +68,8 @@ export class AuthController {
   async verifyEmail(@Query() query: VerifyEmailQuery): Promise<VerifyResponse> {
     try {
       const { id } = this.jwtService.verify(query.token);
-      await this.authService.verifyEmail(id);
+      const user = await this.userService.getUserByIdPrivateInfo(id);
+      await this.authService.verifyEmail(user);
       return { message: 'Почта подтверждена', verified: true };
     } catch (error) {
       if (error.message == 'jwt expired') {

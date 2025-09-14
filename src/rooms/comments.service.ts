@@ -1,7 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { CreateCommentDto, UpdateCommentDto } from './dto/create-comment.dto';
-import { UserMinInfo } from '../users/entities/user.entity';
-import { RoomEntity } from './entities/room.entity';
 import { CommentEntity } from './entities/comment.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -16,8 +14,8 @@ export class CommentsService {
   async createComment(commentDto: CreateCommentDto) {
     await this.commentRepository.save({
       text: commentDto.text,
-      author: { id: commentDto.authorId } as UserMinInfo,
-      room: { id: commentDto.roomId } as RoomEntity,
+      author: { id: commentDto.authorId },
+      room: { id: commentDto.roomId },
     });
   }
 

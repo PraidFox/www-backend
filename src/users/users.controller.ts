@@ -15,10 +15,10 @@ import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@ne
 import { UpdateUserDto } from './dto/user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt.guards';
 import { Request } from 'express';
-import { UserEntity } from './entities/user.entity';
-import { AllUser } from './dto/response.dto';
+import { AllUserDto, UserMinimalDto, UserSessionsDto } from './dto/response.dto';
 import { DecodedAccessToken } from '../utils/interfaces';
 import { MyError } from '../utils/constants/errors';
+import { UserMinimal, UserSessions } from './dto/user.interfaces';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -27,20 +27,20 @@ export class UsersController {
   constructor(private readonly userService: UsersService) {}
 
   @Get('me')
-  @ApiResponse({ status: 200, type: UserEntity })
+  @ApiResponse({ status: 200, type: UserMinimalDto })
   @ApiOperation({ summary: 'Получить текущего пользователя' })
   @UseGuards(JwtAuthGuard)
-  async getMe(@Req() req: Request) {
+  async getMe(@Req() req: Request): Promise<UserMinimal> {
     const { id } = req.user as DecodedAccessToken;
 
     return this.userService.getUserById(id);
   }
 
   @Get('mySessions')
-  @ApiResponse({ status: 200, type: UserEntity })
-  @ApiOperation({ summary: 'Получить текущего пользователя' })
+  @ApiResponse({ status: 200, type: UserSessionsDto })
+  @ApiOperation({ summary: 'Получить сессии текущего пользователя' })
   @UseGuards(JwtAuthGuard)
-  async getMySessions(@Req() req: Request) {
+  async getMySessions(@Req() req: Request): Promise<UserSessions> {
     const { id } = req.user as DecodedAccessToken;
     return this.userService.getSessionsUser(id);
   }
@@ -49,7 +49,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Получить всех пользователей' })
   @ApiResponse({
     status: 200,
-    type: AllUser,
+    type: AllUserDto,
   })
   @ApiQuery({ name: 'withDeleted', required: false })
   @ApiQuery({ name: 'skip', required: false, type: Number })
@@ -63,28 +63,10 @@ export class UsersController {
   }
 
   @Get(':param')
-  @ApiResponse({ status: 200, type: UserEntity })
+  @ApiResponse({ status: 200, type: UserMinimalDto })
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiOperation({ summary: 'Получить пользователя по id или логину' })
-  async getUser(@Param('param') param: string): Promise<UserNotPassword> {
-    const isId = !isNaN(Number(param));
-    if (isId) {
-      return await this.userService.getUserById(Number(param));
-    } else {
-      const user = await this.userService.findUserEmailOrLogin(param);
-      if (!user) {
-        throw new NotFoundException(MyError.NOT_FOUND);
-      }
-      return user;
-    }
-  }
-
-  @Get(':param')
-  @ApiResponse({ status: 200, type: UserEntity })
-  @ApiResponse({ status: 404, description: 'User not found' })
-  @ApiOperation({ summary: 'Получить пользователя по id или логину' })
-  async getUserMinInfo(@Param('param') param: string): Promise<UserMinInfo> {
-    //TODO добавить получение пользователя с минимальной инфой
+  async getUser(@Param('param') param: string): Promise<UserMinimal> {
     const isId = !isNaN(Number(param));
     if (isId) {
       return await this.userService.getUserById(Number(param));

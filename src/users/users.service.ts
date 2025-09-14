@@ -6,7 +6,7 @@ import { BadRequestException, Injectable, NotFoundException, UnauthorizedExcepti
 import { MyError } from '../utils/constants/errors';
 import { compare, genSalt, hash } from 'bcryptjs';
 import { PasswordChangeDto } from '../auth/dto/auth.dto';
-import { UserMinInfo } from './dto/user.interfaces';
+import { UserCredentials, UserMinimal, UserPrivateInfo, UserSessions } from './dto/user.interfaces';
 
 @Injectable()
 export class UsersService {
@@ -15,7 +15,7 @@ export class UsersService {
     private usersRepository: Repository<UserEntity>,
   ) {}
 
-  async getAllUsers(take, skip, withDeleted = false) {
+  async getAllUsers(take, skip, withDeleted = false): Promise<{ users: UserMinimal[]; count: number }> {
     const [users, count] = await this.usersRepository.findAndCount({
       withDeleted,
       take,
@@ -24,14 +24,14 @@ export class UsersService {
     return { users, count };
   }
 
-  async getSessionsUser(userId: number): Promise<UserMinInfo> {
+  async getSessionsUser(userId: number): Promise<UserSessions> {
     return await this.usersRepository.findOne({
       where: [{ id: userId }],
       relations: { sessions: true },
     });
   }
 
-  async getUserById(id: number, withDeleted: boolean = false): Promise<UserMinInfo> {
+  async getUserById(id: number, withDeleted: boolean = false): Promise<UserMinimal> {
     if (!id) {
       throw new NotFoundException(MyError.FAIL_ID);
     }
@@ -48,14 +48,15 @@ export class UsersService {
     }
   }
 
-  async getUserByIdWithPassword(id: number): Promise<UserEntity> {
+  async getUserByIdPrivateInfo(id: number, withDeleted: boolean = false): Promise<UserPrivateInfo> {
     if (!id) {
       throw new NotFoundException(MyError.FAIL_ID);
     }
 
     const existUser = await this.usersRepository.findOne({
       where: [{ id }],
-      select: this.usersRepository.metadata.propertiesMap,
+      select: ['id', 'login', 'email', 'emailVerifiedAt', 'createdAt', 'updatedAt', 'deletedAt'],
+      withDeleted,
     });
 
     if (!existUser) {
@@ -65,22 +66,46 @@ export class UsersService {
     }
   }
 
-  async findUserEmailOrLogin(emailOrLogin: string): Promise<UserMinInfo> {
+  async getUserByIdWithPassword(id: number): Promise<UserCredentials> {
+    if (!id) {
+      throw new NotFoundException(MyError.FAIL_ID);
+    }
+
+    const existUser = await this.usersRepository.findOne({
+      where: [{ id }],
+      select: ['id', 'login', 'password', 'tmpPassword'],
+    });
+
+    if (!existUser) {
+      throw new NotFoundException(MyError.NOT_FOUND_BY_ID);
+    } else {
+      return existUser;
+    }
+  }
+
+  async findUserEmailOrLogin(emailOrLogin: string): Promise<UserMinimal> {
     return await this.usersRepository.findOne({
       where: [{ login: emailOrLogin }, { email: emailOrLogin }],
     });
-
-    // if (!existUser) {
-    //   throw new NotFoundException(MyError.USER_NOT_FOUND);
-    // } else {
-    //   return existUser;
-    // }
   }
 
-  async findUserByEmailOrLoginWithPassword(emailOrLogin: string): Promise<UserEntity> {
+  async findUserByEmailOrLoginPrivateInfo(emailOrLogin: string): Promise<UserPrivateInfo> {
     const existUser = await this.usersRepository.findOne({
       where: [{ login: emailOrLogin }, { email: emailOrLogin }],
-      select: this.usersRepository.metadata.propertiesMap,
+      select: ['id', 'login', 'password', 'tmpPassword'],
+    });
+
+    if (!existUser) {
+      throw new NotFoundException(MyError.USER_NOT_FOUND);
+    } else {
+      return existUser;
+    }
+  }
+
+  async findUserByEmailOrLoginWithPassword(emailOrLogin: string): Promise<UserCredentials> {
+    const existUser = await this.usersRepository.findOne({
+      where: [{ login: emailOrLogin }, { email: emailOrLogin }],
+      select: ['id', 'login', 'password', 'tmpPassword'],
     });
 
     if (!existUser) {
@@ -95,7 +120,7 @@ export class UsersService {
   }
 
   /**Захеширует пароль и создаст нового пользователя*/
-  async createUser(registerDto: CreateUserDto): Promise<UserEntity> {
+  async createUser(registerDto: CreateUserDto) {
     try {
       registerDto.password = await this.generateHashPassword(registerDto.password);
       return await this.usersRepository.save(registerDto);
@@ -108,6 +133,15 @@ export class UsersService {
     await this.getUserById(id);
 
     const result = await this.usersRepository.update(id, dto);
+    if (result.affected == 0) {
+      throw new BadRequestException(MyError.UPDATE_FAILED);
+    }
+  }
+
+  async updateVerifyEmail(id: number) {
+    const result = await this.usersRepository.update(id, {
+      emailVerifiedAt: new Date(),
+    });
     if (result.affected == 0) {
       throw new BadRequestException(MyError.UPDATE_FAILED);
     }
@@ -126,7 +160,7 @@ export class UsersService {
     }
   }
 
-  async updateTmpPassword(user: UserEntity, dto: PasswordChangeDto) {
+  async updateTmpPassword(user: UserCredentials, dto: PasswordChangeDto) {
     //await this.getUserById(id);
 
     const isValidPassword = await this.validatePassword(user.password, dto.currentPassword);

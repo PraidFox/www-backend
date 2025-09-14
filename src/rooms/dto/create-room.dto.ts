@@ -16,92 +16,6 @@ import { DateType } from '../../utils/constants/constants';
 
 // @ArrayNotEmpty({ message: 'newLocations не должен быть пустым' }) // Проверяет, что массив не пустой
 
-export class CreateRoomDto {
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  title: string;
-
-  @ApiProperty()
-  @IsString()
-  @IsOptional()
-  description: string;
-
-  @ApiProperty()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => LocationAndDetailsDto)
-  @IsOptional()
-  existingLocationsAndDetails: LocationAndDetailsDto[];
-
-  @ApiProperty()
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => NewLocationAndDetailsDto)
-  newLocationsAndDetails: NewLocationAndDetailsDto[];
-
-  @ApiProperty()
-  @IsNumber()
-  authorId: number;
-
-  @ApiProperty({ type: [Number], required: false })
-  @IsArray()
-  @IsNumber({}, { each: true })
-  @ArrayNotEmpty()
-  membersId: number[];
-
-  @ApiProperty()
-  @IsDate({ message: 'Дата должна быть корректной' })
-  @Transform(({ value }) => new Date(value), { toClassOnly: true })
-  @IsOptional()
-  exactDate: Date;
-
-  @IsEnum(DateType)
-  dateType: DateType;
-
-  @ApiProperty()
-  @IsDate({ message: 'Дата должна быть корректной' })
-  @IsOptional()
-  whenRoomClose: Date;
-
-  @ApiProperty()
-  @IsDate({ message: 'Дата должна быть корректной' })
-  @IsOptional()
-  whenRoomDeleted: Date;
-}
-
-export class UpdateRoomDto extends CreateRoomDto {
-  //TODO что делать с автором при создании он нужен, при обновлении нет
-  @ApiProperty()
-  @IsNumber()
-  id: number;
-
-  @ApiProperty()
-  @IsNumber()
-  @IsOptional()
-  authorId: number;
-
-  @IsOptional()
-  membersId: number[];
-
-  @ApiProperty()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => MembersIdAndLinkIdDto)
-  members: MembersIdAndLinkIdDto[];
-}
-
-export class MembersIdAndLinkIdDto {
-  @ApiProperty()
-  @IsNumber()
-  linkId: number;
-
-  @ApiProperty()
-  @IsNumber()
-  memberId: number;
-}
-
 class DetailsForWhere {
   @ApiProperty()
   @IsDate({ message: 'Дата должна быть корректной' })
@@ -134,6 +48,92 @@ export class LocationAndDetailsDto extends DetailsForWhere {
   @ApiProperty()
   @IsString()
   type: 'general' | 'user location';
+}
+
+export class MembersIdAndLinkIdDto {
+  @ApiProperty()
+  @IsNumber()
+  linkId: number;
+
+  @ApiProperty()
+  @IsNumber()
+  memberId: number;
+}
+
+export class CreateRoomDto {
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  title: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsString()
+  description: string;
+
+  @ApiProperty({ type: [LocationAndDetailsDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => LocationAndDetailsDto)
+  existingLocationsAndDetails: LocationAndDetailsDto[];
+
+  @ApiProperty({ type: [NewLocationAndDetailsDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => NewLocationAndDetailsDto)
+  newLocationsAndDetails: NewLocationAndDetailsDto[];
+
+  @ApiProperty()
+  @IsNumber()
+  authorId: number;
+
+  @ApiProperty({ type: [Number], required: false })
+  @IsArray()
+  @IsNumber({}, { each: true })
+  @ArrayNotEmpty()
+  membersId: number[];
+
+  @ApiProperty()
+  @IsOptional()
+  @IsDate({ message: 'Дата должна быть корректной' })
+  @Transform(({ value }) => new Date(value), { toClassOnly: true })
+  exactDate: Date;
+
+  @IsEnum(DateType)
+  dateType: DateType;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsDate({ message: 'Дата должна быть корректной' })
+  whenRoomClose: Date;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsDate({ message: 'Дата должна быть корректной' })
+  whenRoomDeleted: Date;
+}
+
+export class UpdateRoomDto extends CreateRoomDto {
+  //TODO что делать с автором при создании он нужен, при обновлении нет
+  @ApiProperty()
+  @IsNumber()
+  id: number;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsNumber()
+  authorId: number;
+
+  @IsOptional()
+  membersId: number[];
+
+  @ApiProperty({ type: [MembersIdAndLinkIdDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MembersIdAndLinkIdDto)
+  members: MembersIdAndLinkIdDto[];
 }
 
 //TODO завести декоратор, который будет проверять что бы startDate/endDate или exactDate были заполнены

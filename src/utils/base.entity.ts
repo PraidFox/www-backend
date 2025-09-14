@@ -23,17 +23,14 @@ export abstract class BaseEntity extends _BaseEntity {
 
 export abstract class BaseEntityMinimal extends _BaseEntity {
   @ApiProperty()
-  @CreateDateColumn()
-  @Column({ select: false })
+  @CreateDateColumn({ select: false })
   createdAt: Date;
 
   @ApiProperty()
-  @UpdateDateColumn()
-  @Column({ select: false })
+  @UpdateDateColumn({ select: false })
   updatedAt: Date;
 
   @ApiProperty()
-  @Column({ select: false })
   @DeleteDateColumn({ select: false })
   deletedAt: Date;
 }

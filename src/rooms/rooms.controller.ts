@@ -30,16 +30,19 @@ export class RoomsController {
     return this.roomsService.getRoomFull(roomId);
   }
 
+  //TODO а зачем передавать idUser ведь если пользователь зарегистрирован или гость, в запросе query передается id
   @Get('myRoomsIsAuthor/:idUser')
   async getMyRoomsIsAuthor(@Param('idUser') idUser: number) {
     return this.usersRoomService.getMyRoomsIsAuthor(idUser);
   }
 
+  //TODO а зачем передавать idUser ведь если пользователь зарегистрирован или гость, в запросе query передается id
   @Get('myRoomsIsMember/:idUser')
   async getMyRoomsIsMember(@Param('idUser') idUser: number) {
     return this.usersRoomService.getMyRoomsIsMember(idUser);
   }
 
+  //TODO удалить? Ведь фронтент не будет проверять доступна комната или нет. Это делает бекенд.
   @Get(':roomId/access/:userId')
   async accessCheck(@Param('roomId') roomId: number, @Param('userId') userId: number) {
     return this.roomsService.accessCheck(userId, roomId);

@@ -1,5 +1,5 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { UserEntity, UserMinInfo } from '../../users/entities/user.entity';
+import { UserEntity } from '../../users/entities/user.entity';
 import { RoomEntity } from './room.entity';
 import { UserLocationEntity } from '../../locations/entities/user-location.entity';
 import { RoomLocationUserReaction } from '../../utils/constants/constants';
@@ -13,7 +13,7 @@ export class UserRoomReactionEntity {
 
   @ApiProperty()
   @ManyToOne(() => UserEntity, (user) => user.userReactions)
-  user: UserMinInfo;
+  user: UserEntity;
 
   @ApiProperty()
   @ManyToOne(() => RoomEntity, (room) => room.userReactions, { onDelete: 'CASCADE' })
