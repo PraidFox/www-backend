@@ -1,15 +1,19 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RoomEntity } from './entities/room.entity';
-import { EntityManager, Repository } from 'typeorm';
-import { CreateRoomDto, UpdateRoomDto } from './dto/create-room.dto';
+import { DataSource, EntityManager, Repository } from 'typeorm';
+import {
+  CreateRoomDto,
+  LocationAndDetailsDto,
+  NewLocationAndDetailsDto,
+  UpdateRoomDto,
+} from './dto/create-room.dto';
 import { UserRoomReactionEntity } from './entities/room-user-reaction.entity';
 import { RoomLocationEntity } from './entities/room-location.entity';
 import { RoomMemberEntity } from './entities/room-user.entity';
 import { RoomStatus } from '../utils/constants/constants';
 import { UpdateUserReactionDto } from './dto/create-user-reaction.dto';
 import { UserLocationEntity } from '../locations/entities/user-location.entity';
-import { LocationsService } from '../locations/locations.service';
 
 @Injectable()
 export class RoomsService {
@@ -20,7 +24,11 @@ export class RoomsService {
     private userRoomReactionEntityRepository: Repository<UserRoomReactionEntity>,
     @InjectRepository(RoomLocationEntity)
     private roomLocationRepository: Repository<RoomLocationEntity>,
-    private locationService: LocationsService,
+    @InjectRepository(RoomMemberEntity)
+    private roomMemberRepository: Repository<RoomMemberEntity>,
+    @InjectRepository(UserLocationEntity)
+    private userLocationRepository: Repository<UserLocationEntity>,
+    private dataSource: DataSource,
   ) {}
 
   //TODO после реализации гостей, поставить проверку на доступность комнаты
@@ -62,51 +70,59 @@ export class RoomsService {
   }
 
   /** Проверка доступа пользователя к комнате (автор или участник)*/
-  async accessCheck(userId: number, roomId: number) {
-    const room: RoomEntity = await this.roomsRepository.findOne({
+  async accessCheck(userId: number, roomId: number): Promise<boolean> {
+    const room = await this.roomsRepository.findOne({
       where: { id: roomId },
       relations: { author: true, members: { member: true } },
     });
 
-    //Проверка есть ли пользовать как автор или в участниках
+    if (!room) {
+      throw new NotFoundException('Комната не найдена');
+    }
+
     return room.members.some((member) => member.member.id === userId) || room.author.id === userId;
   }
 
-  /**Перед созданием комнаты, если есть новые локации создаст их*/
-  async createRoom(createRoomDto: CreateRoomDto) {
-    let newRoom = await this.buildRoomEntity(createRoomDto, createRoomDto.authorId);
-    console.log('newRoom', newRoom);
-    try {
-      newRoom = await this.roomsRepository.save(newRoom);
-    } catch (error) {
-      throw new Error('Ошибка при создании новой комнаты: ' + error.message);
-    }
-    return newRoom;
+  /** Создание новой комнаты */
+  async createRoom(createRoomDto: CreateRoomDto, authorId: number) {
+    return this.dataSource.transaction(async (transactionalEntityManager) => {
+      try {
+        return await this.buildRoomEntity(
+          transactionalEntityManager,
+          createRoomDto,
+          authorId,
+          false, // флаг создания
+        );
+      } catch (error) {
+        throw new Error('Ошибка при создании новой комнаты: ' + error.message);
+      }
+    });
   }
 
+  /** Обновление существующей комнаты */
   async updateRoom(updateRoomDto: UpdateRoomDto, userId: number) {
-    await this.getRoom(updateRoomDto.id);
+    return this.dataSource.transaction(async (transactionalEntityManager) => {
+      try {
+        // Проверяем права доступа
+        const hasAccess = await this.accessCheck(userId, updateRoomDto.id);
+        if (!hasAccess) {
+          throw new NotFoundException('Нет доступа для редактирования комнаты');
+        }
 
-    let room = await this.buildRoomEntity(updateRoomDto, userId);
-    room.id = updateRoomDto.id;
-
-    try {
-      room = await this.roomsRepository.save(room);
-      this.clearNullRoomLinks();
-      return room;
-    } catch (error) {
-      throw new Error(`Ошибка при обновлении комнаты ${updateRoomDto.id}: ` + error.message);
-    }
+        return await this.buildRoomEntity(
+          transactionalEntityManager,
+          updateRoomDto,
+          userId,
+          true, // флаг обновления
+        );
+      } catch (error) {
+        throw new Error(`Ошибка при обновлении комнаты ${updateRoomDto.id}: ` + error.message);
+      }
+    });
   }
 
   async deleteRoom(id: number) {
     return this.roomsRepository.delete(id);
-
-    // const room = await this.roomsRepository.findOne({ where: { id } });
-    // if (room) {
-    //   return this.roomsRepository.remove(room);
-    // }
-    // throw new Error('Room not found');
   }
 
   async updateReaction(userReactionDto: UpdateUserReactionDto) {
@@ -119,158 +135,177 @@ export class RoomsService {
     });
   }
 
-  async clearNullRoomLinks(): Promise<void> {
-    await this.roomLocationRepository.manager.transaction(async (entityManager: EntityManager) => {
-      await entityManager
-        .createQueryBuilder()
-        .delete()
-        .from(RoomLocationEntity)
-        .where('roomId IS NULL')
-        .execute();
+  private async buildRoomEntity(
+    transactionalEntityManager: EntityManager,
+    roomDto: CreateRoomDto | UpdateRoomDto,
+    authorId: number,
+    isUpdate: boolean = false,
+  ): Promise<RoomEntity> {
+    let roomEntity: RoomEntity;
+    let savedRoom: RoomEntity;
 
-      await entityManager
-        .createQueryBuilder()
-        .delete()
-        .from(RoomMemberEntity)
-        .where('roomId IS NULL')
-        .execute();
+    if (isUpdate && 'id' in roomDto) {
+      // РЕЖИМ ОБНОВЛЕНИЯ - загружаем существующую комнату
+      roomEntity = await transactionalEntityManager.findOne(RoomEntity, {
+        where: { id: roomDto.id },
+        relations: ['members', 'locations', 'userReactions'],
+      });
 
-      await entityManager
-        .createQueryBuilder()
-        .delete()
-        .from(UserRoomReactionEntity)
-        .where('roomId IS NULL')
-        .execute();
-    });
-  }
+      if (!roomEntity) {
+        throw new NotFoundException('Комната не найдена');
+      }
 
-  private async buildRoomEntity(roomDto: CreateRoomDto | UpdateRoomDto, userId: number): Promise<RoomEntity> {
-    const roomEntity = this.roomsRepository.create({
-      title: roomDto.title,
-      exactDate: roomDto.exactDate,
-      dateType: roomDto.dateType,
-      description: roomDto.description,
-      whenRoomClose: roomDto.whenRoomClose,
-      whenRoomDeleted: roomDto.whenRoomDeleted,
-    });
+      // Обновляем поля комнаты
+      roomEntity.title = roomDto.title;
+      roomEntity.exactDate = roomDto.exactDate;
+      roomEntity.dateType = roomDto.dateType;
+      roomEntity.description = roomDto.description;
+      roomEntity.whenRoomClose = roomDto.whenRoomClose;
+      roomEntity.whenRoomDeleted = roomDto.whenRoomDeleted;
 
-    if (roomDto instanceof CreateRoomDto) {
-      //roomEntity.author = { id: roomDto.authorId }; !!!!!!!!!!!!
+      savedRoom = await transactionalEntityManager.save(roomEntity);
+
+      // Удаляем старых участников
+      await transactionalEntityManager.delete(RoomMemberEntity, { room: { id: savedRoom.id } });
+    } else {
+      // РЕЖИМ СОЗДАНИЯ - создаем новую комнату
+      roomEntity = this.roomsRepository.create({
+        title: roomDto.title,
+        exactDate: roomDto.exactDate,
+        dateType: roomDto.dateType,
+        description: roomDto.description,
+        whenRoomClose: roomDto.whenRoomClose,
+        whenRoomDeleted: roomDto.whenRoomDeleted,
+        author: { id: authorId },
+        roomStatus: RoomStatus.CREATED,
+      });
+
+      savedRoom = await transactionalEntityManager.save(roomEntity);
     }
 
-    //TODO отказаться от каскадного создания?
-    await this.processMembers(roomEntity, roomDto);
-    await this.processLocations(roomEntity, roomDto, userId);
-    await this.processReactions(roomEntity, roomDto);
+    // Обрабатываем участников
+    savedRoom.members = await this.processMembers(
+      transactionalEntityManager,
+      savedRoom.id,
+      roomDto.membersId,
+    );
 
-    if (roomDto instanceof CreateRoomDto) {
-      roomEntity.roomStatus = RoomStatus.CREATED;
+    // Обрабатываем локации
+    if (isUpdate) {
+      // Удаляем старые связи с локациями
+      await transactionalEntityManager.delete(RoomLocationEntity, { room: { id: savedRoom.id } });
     }
 
-    return roomEntity;
-  }
+    const allLocationsData = [
+      ...(roomDto.newLocationsAndDetails || []),
+      ...(roomDto.existingLocationsAndDetails || []),
+    ];
 
-  private async processMembers(roomEntity: RoomEntity, roomDto: CreateRoomDto | UpdateRoomDto) {
-    if (roomDto instanceof CreateRoomDto) {
-      roomEntity.members = roomDto.membersId.map(
-        (memberId) =>
-          ({
-            member: { id: memberId },
-          }) as RoomMemberEntity,
+    if (allLocationsData.length > 0) {
+      savedRoom.locations = await this.processLocations(
+        transactionalEntityManager,
+        allLocationsData,
+        savedRoom.id,
+        authorId,
+      );
+    } else {
+      savedRoom.locations = [];
+    }
+
+    // Обрабатываем реакции
+    if (isUpdate) {
+      // Удаляем старые реакции
+      await transactionalEntityManager.delete(UserRoomReactionEntity, { room: { id: savedRoom.id } });
+    }
+
+    const memberIds = savedRoom.members.map((member) => member.member.id);
+    const locationIds = savedRoom.locations
+      .filter((location) => location.userLocation?.id)
+      .map((location) => location.userLocation.id);
+
+    if (memberIds.length > 0 && locationIds.length > 0) {
+      savedRoom.userReactions = await this.processReactions(
+        transactionalEntityManager,
+        savedRoom.id,
+        memberIds,
+        locationIds,
       );
     }
-    if (roomDto instanceof UpdateRoomDto) {
-      roomEntity.members = roomDto.members.map(
-        (member) =>
-          ({
-            id: member.linkId,
-            member: { id: member.memberId },
-          }) as RoomMemberEntity,
-      );
-    }
+
+    return savedRoom;
   }
 
   private async processLocations(
-    roomEntity: RoomEntity,
-    roomDto: CreateRoomDto | UpdateRoomDto,
+    entityManager: EntityManager,
+    locationsData: (NewLocationAndDetailsDto | LocationAndDetailsDto)[],
+    roomId: number,
     userId: number,
-  ) {
-    const locations: RoomLocationEntity[] = [];
+  ): Promise<RoomLocationEntity[]> {
+    const savedRoomLocations: RoomLocationEntity[] = [];
 
-    if (roomDto.existingLocationsAndDetails) {
-      locations.push(
-        ...roomDto.existingLocationsAndDetails.map(
-          (location) =>
-            ({
-              id: location.linkId == 0 ? undefined : location.linkId,
-              userLocation: location.type == 'user location' && { id: location.existingLocationsId },
-              generalLocation: location.type == 'general' && { id: location.existingLocationsId },
-              description: location.description,
-              exactDate: location.exactDate,
-            }) as RoomLocationEntity,
-        ),
-      );
-    }
+    for (const locationData of locationsData) {
+      let userLocationId: number;
 
-    if (roomDto.newLocationsAndDetails) {
-      roomDto.newLocationsAndDetails.forEach((location) => {
-        this.locationService.newLocation(location.newLocation);
+      if ('newLocation' in locationData) {
+        const userLocationEntity = this.userLocationRepository.create({
+          name: locationData.newLocation.name,
+          address: locationData.newLocation.address,
+          url: locationData.newLocation.url,
+          user: { id: userId },
+        });
+        const savedUserLocation = await entityManager.save(userLocationEntity);
+        userLocationId = savedUserLocation.id;
+      } else {
+        userLocationId = locationData.existingLocationsId;
+      }
+
+      const roomLocationEntity = this.roomLocationRepository.create({
+        room: { id: roomId },
+        userLocation: { id: userLocationId },
+        exactDate: locationData.exactDate,
+        description: locationData.description,
       });
 
-      locations.push(
-        ...roomDto.newLocationsAndDetails.map(
-          (location) =>
-            ({
-              userLocation: {
-                name: location.newLocation.name,
-                url: location.newLocation.url,
-                address: location.newLocation.address,
-                user: { id: userId },
-              } as UserLocationEntity,
-              description: location.description,
-              exactDate: location.exactDate,
-            }) as RoomLocationEntity,
-        ),
-      );
+      const savedRoomLocation = await entityManager.save(roomLocationEntity);
+      savedRoomLocations.push(savedRoomLocation);
     }
 
-    if (locations.length > 0) {
-      roomEntity.locations = locations;
-    }
+    return savedRoomLocations;
   }
 
-  private async processReactions(roomEntity: RoomEntity, roomDto: CreateRoomDto | UpdateRoomDto) {
-    const userReactions: UserRoomReactionEntity[] = [];
+  private async processMembers(entityManager: EntityManager, roomId: number, memberIds: number[]) {
+    const memberEntities = memberIds.map((memberId) =>
+      this.roomMemberRepository.create({
+        room: { id: roomId },
+        member: { id: memberId },
+      }),
+    );
 
-    if (roomDto instanceof UpdateRoomDto) {
-      for (const location of roomEntity.locations) {
-        for (const member of roomEntity.members) {
-          const reaction = await this.findUserReaction(
-            member.member.id,
-            roomDto.id,
-            location.userLocation.id,
-          );
-          if (reaction) {
-            userReactions.push(reaction);
-          } else {
-            userReactions.push({
-              user: { id: member.member.id },
-              location: location.userLocation,
-            } as UserRoomReactionEntity);
-          }
-        }
-      }
-    } else {
-      for (const location of roomEntity.locations) {
-        for (const member of roomEntity.members) {
-          userReactions.push({
-            user: { id: member.member.id },
-            location: location.userLocation,
-          } as UserRoomReactionEntity);
-        }
+    return entityManager.save(memberEntities);
+  }
+
+  private async processReactions(
+    entityManager: EntityManager,
+    roomId: number,
+    memberIds: number[],
+    locationIds: number[],
+  ): Promise<UserRoomReactionEntity[]> {
+    const reactionsToCreate: UserRoomReactionEntity[] = [];
+
+    // Для каждой пары участник-локация создаем реакцию
+    for (const memberId of memberIds) {
+      for (const locationId of locationIds) {
+        reactionsToCreate.push(
+          this.userRoomReactionEntityRepository.create({
+            user: { id: memberId },
+            room: { id: roomId },
+            location: { id: locationId },
+          }),
+        );
       }
     }
 
-    roomEntity.userReactions = userReactions;
+    // Сохраняем все реакции одной операцией
+    return entityManager.save(reactionsToCreate);
   }
 }

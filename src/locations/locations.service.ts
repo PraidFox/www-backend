@@ -9,17 +9,17 @@ import { CreateLocationDTO } from './dto/create-location-and-author.dto';
 export class LocationsService {
   constructor(
     @InjectRepository(UserLocationEntity)
-    private locationsRepository: Repository<UserLocationEntity>,
+    private userLocationsRepository: Repository<UserLocationEntity>,
     @InjectRepository(GeneralLocationEntity)
-    private locationsForAllUserRepository: Repository<GeneralLocationEntity>,
+    private generalLocationsRepository: Repository<GeneralLocationEntity>,
   ) {}
 
   async create(createLocationDto: UserLocationEntity, userId: number) {
-    return await this.locationsRepository.save({ ...createLocationDto, user: { id: userId } });
+    return await this.userLocationsRepository.save({ ...createLocationDto, user: { id: userId } });
   }
 
   async createLocationForAllUser(createLocationDto: CreateLocationDTO) {
-    return await this.locationsForAllUserRepository.save(createLocationDto);
+    return await this.generalLocationsRepository.save(createLocationDto);
   }
 
   async newLocation(createLocationDto: CreateLocationDTO) {
@@ -30,7 +30,7 @@ export class LocationsService {
   }
 
   async countLocationsByName(location: CreateLocationDTO) {
-    return await this.locationsRepository.count({
+    return await this.userLocationsRepository.count({
       where: {
         name: location.name,
         address: location.address,
@@ -39,7 +39,7 @@ export class LocationsService {
   }
 
   async findAll() {
-    return await this.locationsRepository.find({
+    return await this.userLocationsRepository.find({
       order: {
         name: 'ASC',
       },

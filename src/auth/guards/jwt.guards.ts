@@ -5,6 +5,9 @@ import { MyError } from '../../utils/constants/errors';
 //Проверка авторизован ли пользователь или нет
 export class JwtAuthGuard extends AuthGuard('jwt') {
   handleRequest(err, user, info) {
+    // console.log('err', err);
+    // console.log('user', user);
+    // console.log('info', info);
     if (err) {
       throw new UnauthorizedException(err.message);
     }

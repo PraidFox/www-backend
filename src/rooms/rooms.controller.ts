@@ -1,5 +1,5 @@
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { RoomsService } from './rooms.service';
 import { CommentsService } from './comments.service';
 import { UsersRoomService } from '../users/usersRoom.service';
@@ -8,6 +8,7 @@ import { CreateCommentDto, UpdateCommentDto } from './dto/create-comment.dto';
 import { UpdateUserReactionDto } from './dto/create-user-reaction.dto';
 import { Request } from 'express';
 import { DecodedAccessToken } from '../utils/interfaces';
+import { JwtAuthGuard } from '../auth/guards/jwt.guards';
 
 @ApiTags('Rooms')
 @Controller('rooms')
@@ -49,8 +50,10 @@ export class RoomsController {
   }
 
   @Post()
-  async create(@Body() body: CreateRoomDto) {
-    return this.roomsService.createRoom(body);
+  @UseGuards(JwtAuthGuard)
+  async create(@Body() crd: CreateRoomDto, @Req() req: Request) {
+    const { id } = req.user as DecodedAccessToken;
+    return this.roomsService.createRoom(crd, id);
   }
 
   @Patch()

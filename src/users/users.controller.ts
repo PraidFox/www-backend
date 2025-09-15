@@ -32,7 +32,6 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   async getMe(@Req() req: Request): Promise<UserMinimal> {
     const { id } = req.user as DecodedAccessToken;
-
     return this.userService.getUserById(id);
   }
 

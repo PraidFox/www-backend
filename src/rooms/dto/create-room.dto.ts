@@ -39,25 +39,11 @@ export class NewLocationAndDetailsDto extends DetailsForWhere {
 export class LocationAndDetailsDto extends DetailsForWhere {
   @ApiProperty()
   @IsNumber()
-  linkId: number;
-
-  @ApiProperty()
-  @IsNumber()
   existingLocationsId: number;
 
-  @ApiProperty()
-  @IsString()
-  type: 'general' | 'user location';
-}
-
-export class MembersIdAndLinkIdDto {
-  @ApiProperty()
-  @IsNumber()
-  linkId: number;
-
-  @ApiProperty()
-  @IsNumber()
-  memberId: number;
+  // @ApiProperty()
+  // @IsString()
+  // type: 'general' | 'user location';
 }
 
 export class CreateRoomDto {
@@ -85,10 +71,6 @@ export class CreateRoomDto {
   @Type(() => NewLocationAndDetailsDto)
   newLocationsAndDetails: NewLocationAndDetailsDto[];
 
-  @ApiProperty()
-  @IsNumber()
-  authorId: number;
-
   @ApiProperty({ type: [Number], required: false })
   @IsArray()
   @IsNumber({}, { each: true })
@@ -101,6 +83,7 @@ export class CreateRoomDto {
   @Transform(({ value }) => new Date(value), { toClassOnly: true })
   exactDate: Date;
 
+  @ApiProperty({ enum: ['all_locations_date', 'each_location_date'] })
   @IsEnum(DateType)
   dateType: DateType;
 
@@ -116,24 +99,9 @@ export class CreateRoomDto {
 }
 
 export class UpdateRoomDto extends CreateRoomDto {
-  //TODO что делать с автором при создании он нужен, при обновлении нет
   @ApiProperty()
   @IsNumber()
   id: number;
-
-  @ApiProperty()
-  @IsOptional()
-  @IsNumber()
-  authorId: number;
-
-  @IsOptional()
-  membersId: number[];
-
-  @ApiProperty({ type: [MembersIdAndLinkIdDto] })
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => MembersIdAndLinkIdDto)
-  members: MembersIdAndLinkIdDto[];
 }
 
 //TODO завести декоратор, который будет проверять что бы startDate/endDate или exactDate были заполнены
